@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Biblioteca Aconchego 📚</title>
+<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:ital,wght@0,500;0,700;1,700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{--madeira:#6b4226;--madeira-escura:#4a2c17;--caramelo:#a67c52;--bege:#f5ecd7;--creme:#fdf8ec;--papel:#efe4cc;--dourado:#c9a227;--verde-oliva:#6b7a4a;--texto:#3b2a1a;--sombra:rgba(74,44,23,0.15);}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Inter',sans-serif;background:var(--creme);color:var(--texto);min-height:100vh;overflow-y:auto;overflow-x:hidden;background-image:radial-gradient(circle at 10% 20%,rgba(201,162,39,0.03) 0%,transparent 40%),radial-gradient(circle at 90% 80%,rgba(166,124,82,0.05) 0%,transparent 40%);}
+  .splash{position:fixed;inset:0;z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:1rem;overflow-y:auto;overflow-x:hidden;transition:opacity .9s ease,visibility .9s ease;background:#1a0f08;background-image:radial-gradient(circle at 50% 30%,rgba(201,162,39,0.15) 0%,transparent 60%),linear-gradient(180deg,#140a05 0%,#2b1a0e 50%,#1a0f08 100%);color:var(--bege);}
+  .splash.hide{opacity:0;visibility:hidden;}
+  .splash::before{content:'';position:absolute;inset:0;background-image:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.15) 2px,rgba(0,0,0,0.15) 4px),repeating-linear-gradient(90deg,transparent,transparent 3px,rgba(255,255,255,0.02) 3px,rgba(255,255,255,0.02) 6px);pointer-events:none;z-index:0;}
+  .shelf-bg{position:absolute;inset:0;pointer-events:none;z-index:0;opacity:.15;display:flex;flex-direction:column;justify-content:space-evenly;}
+  .shelf-row{width:100%;height:12px;background:#0a0502;box-shadow:0 4px 10px rgba(0,0,0,.8),inset 0 1px 0 rgba(255,255,255,.1);position:relative;}
+  .shelf-books{position:absolute;bottom:100%;left:0;width:100%;height:120px;display:flex;align-items:flex-end;gap:2px;padding:0 20px;overflow:hidden;}
+  .shelf-books div{width:15px;height:80px;background:linear-gradient(to right,#5a1414,#7a1f1f);border-radius:1px 2px 0 0;box-shadow:inset -2px 0 4px rgba(0,0,0,.6);}
+  .shelf-books div:nth-child(2n){height:90px;background:linear-gradient(to right,#1e3a5a,#2f5a8a);}
+  .shelf-books div:nth-child(3n){height:70px;background:linear-gradient(to right,#4a2c17,#6b4226);}
+  .shelf-books div:nth-child(5n){height:95px;background:linear-gradient(to right,#4a1e5a,#6b2f8a);}
+  .frame{position:absolute;inset:15px;border:2px solid rgba(201,162,39,.3);border-radius:4px;pointer-events:none;z-index:1;}
+  .frame::before{content:'';position:absolute;inset:6px;border:1px solid rgba(201,162,39,.15);border-radius:2px;}
+  .corner{position:absolute;width:30px;height:30px;border:2px solid var(--dourado);z-index:2;opacity:.6;}
+  .corner.tl{top:11px;left:11px;border-right:none;border-bottom:none;}
+  .corner.tr{top:11px;right:11px;border-left:none;border-bottom:none;}
+  .corner.bl{bottom:11px;left:11px;border-right:none;border-top:none;}
+  .corner.br{bottom:11px;right:11px;border-left:none;border-top:none;}
+  .falling-books{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:1;}
+  .book-3d{position:absolute;width:50px;height:75px;top:-120px;opacity:0;transform-style:preserve-3d;animation:bookFall linear infinite;filter:drop-shadow(0 15px 25px rgba(0,0,0,.9));}
+  .book-3d .cover{position:absolute;inset:0;border-radius:2px 4px 4px 2px;box-shadow:inset -4px 0 6px rgba(0,0,0,.6),inset 4px 0 6px rgba(255,255,255,.1),2px 2px 8px rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  .book-3d .spine{position:absolute;left:0;top:0;bottom:0;width:6px;background:rgba(0,0,0,.5);border-right:1px solid rgba(255,255,255,.15);border-top:2px solid var(--dourado);border-bottom:2px solid var(--dourado);}
+  .book-3d .lines{position:absolute;left:10px;right:4px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:2px;}
+  .book-3d .lines span{height:1px;background:rgba(201,162,39,.5);border-radius:2px;}
+  .book-3d .lines span:nth-child(1){width:60%;}
+  .book-3d .lines span:nth-child(2){width:40%;}
+  .book-3d .pages{position:absolute;right:-3px;top:2px;bottom:2px;width:4px;background:repeating-linear-gradient(0deg,#e8dcc4 0px,#e8dcc4 1.5px,#c4b08a 1.5px,#c4b08a 2.5px);border-radius:0 2px 2px 0;box-shadow:1px 0 3px rgba(0,0,0,.5);}
+  .book-red .cover{background:linear-gradient(135deg,#4a0e0e 0%,#7a1f1f 50%,#2a0505 100%);}
+  .book-green .cover{background:linear-gradient(135deg,#1e2e1e 0%,#3a5a3a 50%,#0e150e 100%);}
+  .book-blue .cover{background:linear-gradient(135deg,#0e1e2e 0%,#1e3a5a 50%,#050e15 100%);}
+  .book-brown .cover{background:linear-gradient(135deg,#2a180c 0%,#4a2c17 50%,#150a04 100%);}
+  .book-gold .cover{background:linear-gradient(135deg,#4a3a0a 0%,#8a6b1a 50%,#2a1f05 100%);}
+  .book-purple .cover{background:linear-gradient(135deg,#2a0e3a 0%,#4a1e5a 50%,#150518 100%);}
+  .book-teal .cover{background:linear-gradient(135deg,#0e2a2a 0%,#1a4a4a 50%,#051515 100%);}
+  @keyframes bookFall{0%{top:-120px;opacity:0;transform:rotate(var(--rot-start)) translateZ(0);}10%{opacity:1;}90%{opacity:1;}100%{top:110vh;opacity:0;transform:rotate(var(--rot-end)) translateZ(0);}}
+  .book-3d:nth-child(1){left:8%;--rot-start:-15deg;--rot-end:45deg;animation-duration:16s;animation-delay:0s;}
+  .book-3d:nth-child(2){left:22%;--rot-start:20deg;--rot-end:-60deg;animation-duration:20s;animation-delay:3s;}
+  .book-3d:nth-child(3){left:35%;--rot-start:-30deg;--rot-end:80deg;animation-duration:18s;animation-delay:6s;}
+  .book-3d:nth-child(4){left:48%;--rot-start:10deg;--rot-end:-40deg;animation-duration:22s;animation-delay:2s;}
+  .book-3d:nth-child(5){left:60%;--rot-start:-20deg;--rot-end:55deg;animation-duration:17s;animation-delay:8s;}
+  .book-3d:nth-child(6){left:75%;--rot-start:25deg;--rot-end:-70deg;animation-duration:21s;animation-delay:4s;}
+  .book-3d:nth-child(7){left:85%;--rot-start:-10deg;--rot-end:50deg;animation-duration:19s;animation-delay:10s;}
+  .book-3d:nth-child(8){left:92%;--rot-start:35deg;--rot-end:-55deg;animation-duration:23s;animation-delay:5s;}
+  .book-3d:nth-child(9){left:15%;--rot-start:-25deg;--rot-end:60deg;animation-duration:15s;animation-delay:12s;}
+  .book-3d:nth-child(10){left:68%;--rot-start:15deg;--rot-end:-50deg;animation-duration:24s;animation-delay:15s;}
+  .splash-content{position:relative;z-index:2;animation:splashFadeIn 1.5s ease both;width:100%;max-width:380px;margin:auto;}
+  @keyframes splashFadeIn{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:translateY(0);}}
+  .splash-logo{width:100px;height:100px;margin:0 auto .8rem;border-radius:50%;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.8) 0%,transparent 40%),radial-gradient(circle at 50% 50%,#fdf8ec 0%,#e0c98f 70%,#a68a4a 100%);position:relative;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 2px 6px rgba(255,255,255,.8),inset 0 -2px 6px rgba(0,0,0,.3),0 0 0 3px #6b4226,0 0 0 6px #c9a227,0 6px 20px rgba(0,0,0,.8),0 0 30px rgba(201,162,39,.3);animation:glowPulse 4s ease-in-out infinite;}
+  .splash-logo span{font-family:'Great Vibes',cursive;font-weight:400;font-size:3.2rem;letter-spacing:-2px;color:var(--madeira-escura);text-shadow:1px 2px 3px rgba(255,255,255,.7),-1px -1px 2px rgba(0,0,0,.3);line-height:0;transform:translateY(6px);}
+  .splash-logo::before,.splash-logo::after{content:'';position:absolute;left:50%;transform:translateX(-50%);width:25px;height:1px;background:linear-gradient(90deg,transparent,rgba(74,44,23,.5),transparent);}
+  .splash-logo::before{top:10px;}.splash-logo::after{bottom:10px;}
+  @keyframes glowPulse{0%,100%{box-shadow:inset 0 2px 6px rgba(255,255,255,.8),inset 0 -2px 6px rgba(0,0,0,.3),0 0 0 3px #6b4226,0 0 0 6px #c9a227,0 6px 20px rgba(0,0,0,.8),0 0 30px rgba(201,162,39,.3);}50%{box-shadow:inset 0 2px 6px rgba(255,255,255,.8),inset 0 -2px 6px rgba(0,0,0,.3),0 0 0 3px #6b4226,0 0 0 6px #c9a227,0 6px 20px rgba(0,0,0,.8),0 0 50px rgba(255,215,120,.6);}}
+  .splash-title{font-family:'Playfair Display',serif;font-size:1.8rem;font-weight:700;letter-spacing:1px;color:#fdf8ec;text-shadow:0 3px 10px rgba(0,0,0,.9);margin-bottom:.1rem;}
+  .splash-title span{color:var(--dourado);}
+  .splash-subtitle{font-family:'Great Vibes',cursive;font-size:1.3rem;color:#e6d3a8;margin-bottom:1.2rem;text-shadow:0 2px 8px rgba(0,0,0,.8);}
+  .screen{display:none;animation:fadeIn .4s ease;}
+  .screen.active{display:block;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+  .splash-actions{display:flex;gap:.8rem;justify-content:center;flex-wrap:wrap;margin-bottom:1rem;}
+  .splash-btn{padding:.8rem 1.5rem;font-size:.85rem;font-weight:600;letter-spacing:1px;border:2px solid var(--dourado);border-radius:4px;background:rgba(20,10,5,.6);backdrop-filter:blur(4px);color:var(--dourado);cursor:pointer;transition:all .35s ease;font-family:'Playfair Display',serif;text-transform:uppercase;box-shadow:0 0 10px rgba(201,162,39,.2);display:flex;align-items:center;justify-content:center;gap:.5rem;}
+  .splash-btn:hover{background:var(--dourado);color:var(--madeira-escura);transform:translateY(-2px);box-shadow:0 8px 20px rgba(201,162,39,.5);}
+  .splash-btn.admin{border-color:#a67c52;color:#d4b996;font-size:.75rem;padding:.6rem 1rem;box-shadow:none;}
+  .splash-btn.admin:hover{background:#a67c52;color:#1a0f08;box-shadow:0 6px 15px rgba(166,124,82,.4);}
+  .splash-hint{margin-top:.5rem;font-size:.75rem;color:#b89a6a;letter-spacing:1px;opacity:.8;font-family:'Playfair Display',serif;font-style:italic;}
+  .glass-panel{background:rgba(43,26,14,.6);backdrop-filter:blur(15px);-webkit-backdrop-filter:blur(15px);border:1px solid rgba(201,162,39,.3);border-radius:12px;padding:1.5rem;box-shadow:0 10px 30px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.1);position:relative;text-align:left;margin-bottom:2rem;}
+  .glass-panel::before{content:'';position:absolute;top:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,rgba(201,162,39,.5),transparent);}
+  .back-btn{background:transparent;border:none;color:var(--dourado);font-size:.8rem;cursor:pointer;display:flex;align-items:center;gap:.3rem;margin-bottom:.8rem;padding:0;font-family:'Inter',sans-serif;transition:color .2s;}
+  .back-btn:hover{color:#e0b840;}
+  .login-title{font-family:'Playfair Display',serif;color:#fdf8ec;font-size:1.4rem;margin-bottom:.2rem;}
+  .login-subtitle{font-size:.8rem;color:#e6d3a8;margin-bottom:1rem;}
+  .form-group{margin-bottom:.8rem;text-align:left;}
+  .form-group label{display:block;margin-bottom:.3rem;font-size:.75rem;font-weight:500;color:#e6d3a8;letter-spacing:.5px;}
+  .form-group input{width:100%;padding:.7rem .8rem;border:1px solid rgba(201,162,39,.4);border-radius:6px;background:rgba(20,10,5,.5);color:#fdf8ec;font-family:'Inter',sans-serif;font-size:.85rem;transition:all .3s;}
+  .form-group input::placeholder{color:rgba(230,211,168,.4);}
+  .form-group input:focus{outline:none;border-color:var(--dourado);background:rgba(20,10,5,.8);box-shadow:0 0 0 2px rgba(201,162,39,.2);}
+  .btn-auth{width:100%;padding:.8rem;margin-top:.5rem;border:none;border-radius:6px;background:var(--dourado);color:var(--madeira-escura);font-family:'Inter',sans-serif;font-weight:600;font-size:.9rem;cursor:pointer;transition:all .3s ease;}
+  .btn-auth:hover{background:#e0b840;transform:translateY(-2px);box-shadow:0 6px 15px rgba(201,162,39,.4);}
+  .btn-register-link{display:block;width:100%;padding:.8rem;margin-top:.8rem;border:2px solid var(--dourado);border-radius:6px;background:transparent;color:var(--dourado);font-family:'Inter',sans-serif;font-weight:600;font-size:.9rem;cursor:pointer;transition:all .3s ease;text-align:center;}
+  .btn-register-link:hover{background:rgba(201,162,39,.1);}
+  .divider{text-align:center;color:rgba(230,211,168,.5);margin:1rem 0;font-size:.75rem;position:relative;}
+  .divider::before,.divider::after{content:'';position:absolute;top:50%;width:35%;height:1px;background:rgba(201,162,39,.2);}
+  .divider::before{left:0;}.divider::after{right:0;}
+  .social-btns{display:flex;gap:.6rem;justify-content:center;}
+  .social-btn{flex:1;padding:.6rem;border:1px solid rgba(201,162,39,.3);border-radius:6px;background:rgba(255,255,255,.05);color:#e6d3a8;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.4rem;font-size:.8rem;transition:all .2s;}
+  .social-btn:hover{background:rgba(255,255,255,.1);border-color:var(--dourado);}
+  .social-btn svg{width:14px;height:14px;}
+  header{background:linear-gradient(135deg,var(--madeira-escura) 0%,var(--madeira) 100%);color:var(--bege);padding:1.5rem 2rem;box-shadow:0 4px 20px var(--sombra);position:sticky;top:0;z-index:100;display:none;}
+  .header-content{display:flex;justify-content:space-between;align-items:center;max-width:1200px;margin:0 auto;flex-wrap:wrap;gap:1rem;}
+  .logo{font-family:'Playfair Display',serif;font-size:1.6rem;font-weight:700;letter-spacing:1px;display:flex;align-items:center;gap:.7rem;text-shadow:0 2px 4px rgba(0,0,0,.5);}
+  .logo .monogram{font-family:'Great Vibes',cursive;font-weight:400;color:var(--dourado);font-size:2.6rem;line-height:1;padding-right:.7rem;border-right:1.5px solid rgba(201,162,39,.5);margin-top:-4px;}
+  .logo span{color:var(--dourado);}
+  .user-area{display:flex;align-items:center;gap:1rem;}
+  .btn{padding:.6rem 1.2rem;border:none;border-radius:8px;font-family:'Inter',sans-serif;font-weight:500;cursor:pointer;transition:all .3s ease;font-size:.9rem;}
+  .btn-gold{background:var(--dourado);color:var(--madeira-escura);}
+  .btn-gold:hover{background:#e0b840;transform:translateY(-2px);box-shadow:0 4px 12px rgba(201,162,39,.4);}
+  .btn-outline{background:transparent;color:var(--bege);border:1px solid var(--bege);}
+  .btn-outline:hover{background:rgba(245,236,215,.15);}
+  .user-info{display:flex;align-items:center;gap:.7rem;font-size:.9rem;}
+  .avatar{width:36px;height:36px;border-radius:50%;background:var(--dourado);color:var(--madeira-escura);display:flex;align-items:center;justify-content:center;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.3);}
+  .tabs-container{background:var(--papel);border-bottom:2px solid var(--caramelo);position:sticky;top:74px;z-index:90;box-shadow:0 4px 10px rgba(0,0,0,.05);display:none;}
+  .tabs{display:flex;max-width:1200px;margin:0 auto;overflow-x:auto;scrollbar-width:none;}
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{padding:1rem 1.5rem;cursor:pointer;font-weight:500;color:var(--madeira);border-bottom:3px solid transparent;transition:all .3s ease;white-space:nowrap;font-size:.95rem;display:flex;align-items:center;gap:.4rem;}
+  .tab:hover{background:rgba(166,124,82,.1);color:var(--madeira-escura);}
+  .tab.active{color:var(--madeira-escura);border-bottom-color:var(--dourado);background:var(--creme);font-weight:600;}
+  .tab.admin-tab{display:none;background:#2b1a0e;color:#f5ecd7;}
+  .tab.admin-tab:hover{background:#4a2c17;}
+  .tab.admin-tab.active{background:#4a2c17;color:#c9a227;border-bottom-color:#c9a227;}
+  main{max-width:1200px;margin:0 auto;padding:2.5rem 2rem;display:none;min-height:calc(100vh - 200px);}
+  .tab-content{display:none;animation:fadeIn .4s ease;}
+  .tab-content.active{display:block;}
+  .section-title{font-family:'Playfair Display',serif;font-size:2rem;color:var(--madeira-escura);margin-bottom:.5rem;}
+  .section-subtitle{color:var(--caramelo);margin-bottom:2rem;font-size:.95rem;}
+  .filters{display:flex;gap:1rem;margin-bottom:2rem;flex-wrap:wrap;align-items:center;}
+  .filters input,.filters select{padding:.7rem 1rem;border:1px solid var(--caramelo);border-radius:8px;background:var(--creme);font-family:'Inter',sans-serif;color:var(--texto);font-size:.9rem;box-shadow:0 2px 5px rgba(0,0,0,.02);}
+  .filters input:focus,.filters select:focus{outline:none;border-color:var(--dourado);box-shadow:0 0 0 3px rgba(201,162,39,.2);}
+  .filters input{flex:1;min-width:200px;}
+  .books-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.5rem;}
+  .book-card{background:var(--creme);border-radius:8px;padding:1.5rem;box-shadow:0 4px 15px var(--sombra);border:1px solid rgba(166,124,82,.2);transition:all .3s ease;position:relative;overflow:hidden;border-left:6px solid var(--caramelo);}
+  .book-card::after{content:'';position:absolute;right:0;top:5px;bottom:5px;width:4px;background:repeating-linear-gradient(0deg,#e8dcc4 0px,#e8dcc4 1.5px,#c4b08a 1.5px,#c4b08a 2.5px);border-radius:0 4px 4px 0;}
+  .book-card:hover{transform:translateY(-8px) scale(1.02);box-shadow:0 12px 30px rgba(74,44,23,.25);border-left-color:var(--dourado);}
+  .book-title{font-family:'Playfair Display',serif;font-size:1.3rem;color:var(--madeira-escura);margin-bottom:.3rem;font-weight:700;line-height:1.2;}
+  .book-author{color:var(--caramelo);font-size:.85rem;margin-bottom:.8rem;font-style:italic;}
+  .book-theme{display:inline-block;background:var(--papel);color:var(--madeira);padding:.2rem .7rem;border-radius:20px;font-size:.75rem;margin-bottom:.8rem;font-weight:600;}
+  .book-status{display:flex;align-items:center;gap:.4rem;font-size:.85rem;font-weight:500;padding:.4rem .8rem;border-radius:6px;margin-top:.8rem;}
+  .status-disponivel{background:#d4e8c5;color:#3d5c1e;}
+  .status-reservado{background:#f8e4b5;color:#7a5a10;}
+  .status-em-uso{background:#f5c4c4;color:#7a1f1f;}
+  .status-devolucao-pendente{background:#e8d4f0;color:#5a2a6a;}
+  .book-actions{margin-top:1rem;display:flex;gap:.5rem;}
+  .btn-borrow{background:var(--verde-oliva);color:#fff;border:none;padding:.5rem 1rem;border-radius:6px;font-family:'Inter',sans-serif;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .2s;width:100%;}
+  .btn-borrow:hover{background:#5a6940;}
+  .btn-return{background:#7a1f1f;color:#fff;border:none;padding:.5rem 1rem;border-radius:6px;font-family:'Inter',sans-serif;font-size:.8rem;font-weight:600;cursor:pointer;transition:all .2s;width:100%;}
+  .btn-return:hover{background:#5c1717;}
+  .btn-disabled{background:#ccc;color:#666;cursor:not-allowed;border:none;padding:.5rem 1rem;border-radius:6px;font-family:'Inter',sans-serif;font-size:.8rem;font-weight:600;width:100%;}
+  .rating-scale{display:flex;gap:.3rem;flex-wrap:wrap;margin-top:.5rem;}
+  .rating-option{padding:.3rem .8rem;border-radius:20px;border:1px solid var(--caramelo);background:transparent;cursor:pointer;font-family:'Inter',sans-serif;font-size:.75rem;font-weight:500;transition:all .2s;color:var(--texto);}
+  .rating-option:hover{background:var(--papel);}
+  .rating-option.selected{background:var(--dourado);border-color:var(--dourado);color:var(--madeira-escura);font-weight:700;}
+  .form-card{background:var(--creme);padding:2.5rem;border-radius:12px;box-shadow:0 8px 30px var(--sombra);border:1px solid rgba(166,124,82,.2);max-width:600px;margin-bottom:2rem;}
+  .form-group-2{margin-bottom:1.2rem;}
+  .form-group-2 label{display:block;margin-bottom:.5rem;font-weight:600;color:var(--madeira-escura);font-size:.9rem;}
+  .form-group-2 input,.form-group-2 textarea,.form-group-2 select{width:100%;padding:.8rem 1rem;border:1px solid var(--caramelo);border-radius:8px;background:var(--creme);font-family:'Inter',sans-serif;color:var(--texto);font-size:.9rem;box-shadow:inset 0 2px 4px rgba(0,0,0,.02);}
+  .form-group-2 input:focus,.form-group-2 textarea:focus,.form-group-2 select:focus{outline:none;border-color:var(--dourado);box-shadow:0 0 0 3px rgba(201,162,39,.2);}
+  .form-group-2 textarea{resize:vertical;min-height:100px;}
+  .list-item{background:var(--creme);padding:1.5rem;border-radius:10px;box-shadow:0 4px 15px var(--sombra);margin-bottom:1rem;border-left:5px solid var(--verde-oliva);display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;}
+  .list-item-content h4{font-family:'Playfair Display',serif;font-size:1.1rem;color:var(--madeira-escura);margin-bottom:.3rem;}
+  .list-item-content p{font-size:.9rem;color:var(--caramelo);line-height:1.4;}
+  .list-item-meta{font-size:.8rem;color:var(--caramelo);text-align:right;white-space:nowrap;}
+  .like-btn{background:transparent;border:1px solid var(--caramelo);color:var(--madeira);padding:.4rem .8rem;border-radius:20px;cursor:pointer;font-size:.8rem;transition:all .2s;margin-top:.5rem;}
+  .like-btn:hover{background:var(--papel);}
+  .like-btn.liked{background:var(--dourado);color:var(--madeira-escura);border-color:var(--dourado);}
+  .admin-panel{background:#2b1a0e;color:var(--bege);padding:2.5rem;border-radius:12px;box-shadow:0 15px 40px rgba(0,0,0,.6);border:1px solid rgba(201,162,39,.3);margin-bottom:2rem;}
+  .admin-header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(201,162,39,.3);padding-bottom:1.5rem;margin-bottom:2rem;flex-wrap:wrap;gap:1rem;}
+  .admin-title{font-family:'Playfair Display',serif;font-size:2rem;color:var(--dourado);}
+  .admin-subtitle{font-size:.95rem;color:#b89a6a;}
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.5rem;margin-bottom:2rem;}
+  .stat-card{background:rgba(255,255,255,.05);padding:1.5rem;border-radius:8px;border-left:4px solid var(--dourado);}
+  .stat-card h3{font-size:.85rem;color:#b89a6a;text-transform:uppercase;letter-spacing:1px;margin-bottom:.5rem;}
+  .stat-card .number{font-size:2.8rem;font-family:'Playfair Display',serif;color:#f5ecd7;font-weight:700;line-height:1;}
+  .admin-table{width:100%;border-collapse:collapse;margin-top:1rem;font-size:.9rem;}
+  .admin-table th{text-align:left;padding:1rem .8rem;color:#b89a6a;border-bottom:2px solid rgba(201,162,39,.3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+  .admin-table td{padding:1rem .8rem;border-bottom:1px solid rgba(255,255,255,.05);color:#f5ecd7;vertical-align:middle;}
+  .admin-table tr:hover{background:rgba(255,255,255,.03);}
+  .badge-status{padding:.3rem .8rem;border-radius:20px;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+  .badge-disponivel{background:#3d5c1e;color:#d4e8c5;}
+  .badge-em-uso{background:#7a1f1f;color:#f5c4c4;}
+  .badge-reservado{background:#7a5a10;color:#f8e4b5;}
+  .status-select{background:#3b2a1a;color:#f5ecd7;border:1px solid rgba(201,162,39,.4);padding:.4rem .6rem;border-radius:6px;font-family:'Inter',sans-serif;font-size:.8rem;cursor:pointer;width:100%;max-width:140px;transition:all .2s;}
+  .status-select:hover{border-color:var(--dourado);}
+  .status-select:focus{outline:none;border-color:var(--dourado);box-shadow:0 0 0 2px rgba(201,162,39,.2);}
+  .donation-card{background:rgba(255,255,255,.05);border:1px solid rgba(201,162,39,.2);border-left:4px solid #f8e4b5;padding:1.5rem;border-radius:8px;margin-bottom:1rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;}
+  .donation-info h4{font-family:'Playfair Display',serif;font-size:1.2rem;color:#fdf8ec;margin-bottom:.2rem;}
+  .donation-info p{font-size:.85rem;color:#b89a6a;}
+  .donation-actions{display:flex;gap:.5rem;}
+  .btn-accept{background:#3d5c1e;color:#d4e8c5;padding:.5rem 1rem;border:none;border-radius:6px;cursor:pointer;font-weight:600;transition:.2s;}
+  .btn-accept:hover{background:#4a6e25;}
+  .btn-reject{background:transparent;border:1px solid #7a1f1f;color:#f5c4c4;padding:.5rem 1rem;border-radius:6px;cursor:pointer;font-weight:600;transition:.2s;}
+  .btn-reject:hover{background:#7a1f1f;}
+  .history-item{background:var(--creme);padding:1.5rem;border-radius:10px;box-shadow:0 4px 15px var(--sombra);margin-bottom:1rem;display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;border-left:5px solid var(--dourado);}
+  .history-item.returned{border-left-color:var(--verde-oliva);opacity:.9;}
+  .history-info h4{font-family:'Playfair Display',serif;font-size:1.2rem;color:var(--madeira-escura);margin-bottom:.2rem;}
+  .history-info p{font-size:.85rem;color:var(--caramelo);}
+  .history-badge{display:inline-block;padding:.2rem .6rem;border-radius:4px;font-size:.75rem;font-weight:600;margin-top:.4rem;}
+  .badge-em-posse{background:#f8e4b5;color:#7a5a10;}
+  .badge-devolvido{background:#d4e8c5;color:#3d5c1e;}
+  .badge-devolucao-pendente{background:#e8d4f0;color:#5a2a6a;}
+  .btn-return-history{background:#7a1f1f;color:#fff;border:none;padding:.5rem 1.2rem;border-radius:6px;cursor:pointer;font-weight:600;transition:all .2s;font-size:.85rem;margin-top:.5rem;}
+  .btn-return-history:hover{background:#5c1717;}
+  .history-rating-area{margin-top:1rem;padding-top:1rem;border-top:1px dashed rgba(166,124,82,.3);width:100%;}
+  .history-rating-label{font-size:.8rem;color:var(--caramelo);font-weight:600;margin-bottom:.3rem;display:block;}
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(59,42,26,.85);backdrop-filter:blur(5px);z-index:200;align-items:center;justify-content:center;padding:1rem;}
+  .modal-overlay.active{display:flex;}
+  .modal{background:var(--creme);border-radius:16px;padding:2.5rem;max-width:450px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.5);position:relative;animation:modalIn .3s ease;}
+  @keyframes modalIn{from{opacity:0;transform:scale(.95);}to{opacity:1;transform:scale(1);}}
+  .modal h2{font-family:'Playfair Display',serif;color:var(--madeira-escura);text-align:center;margin-bottom:.3rem;font-size:1.8rem;}
+  .modal-subtitle{text-align:center;color:var(--caramelo);font-size:.9rem;margin-bottom:1.5rem;}
+  .close-modal{position:absolute;top:1rem;right:1rem;background:transparent;border:none;font-size:1.5rem;cursor:pointer;color:var(--caramelo);transition:color .2s;}
+  .close-modal:hover{color:var(--madeira-escura);}
+  .toast{position:fixed;bottom:2rem;left:50%;transform:translateX(-50%) translateY(100px);background:var(--madeira-escura);color:var(--bege);padding:1rem 2rem;border-radius:50px;box-shadow:0 10px 30px rgba(0,0,0,.4);opacity:0;transition:all .4s cubic-bezier(.68,-.55,.27,1.55);z-index:300;font-size:.95rem;font-weight:500;border:1px solid rgba(201,162,39,.3);max-width:90%;text-align:center;}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  footer{text-align:center;padding:3rem 2rem;color:var(--caramelo);font-size:.9rem;border-top:1px solid rgba(166,124,82,.2);margin-top:4rem;display:none;font-style:italic;}
+  @media(max-width:768px){
+    .header-content{flex-direction:column;text-align:center;}
+    .logo{font-size:1.4rem;}.logo .monogram{font-size:2.2rem;}
+    main{padding:1.5rem 1rem;}.section-title{font-size:1.6rem;}
+    .tab{padding:.8rem 1rem;font-size:.85rem;}.tabs-container{top:110px;}
+    .modal{padding:1.8rem;}.splash-logo{width:80px;height:80px;}.splash-logo span{font-size:2.6rem;transform:translateY(4px);}
+    .book-3d{width:40px;height:60px;}.frame{inset:10px;}.corner{width:20px;height:20px;}
+    .corner.tl{top:8px;left:8px;}.corner.tr{top:8px;right:8px;}.corner.bl{bottom:8px;left:8px;}.corner.br{bottom:8px;right:8px;}
+    .splash-actions{flex-direction:column;gap:.6rem;}.admin-panel{padding:1.5rem;}.glass-panel{padding:1.2rem;}
+  }
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div class="splash" id="splash">
+  <div class="frame"></div>
+  <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+  <div class="shelf-bg">
+    <div class="shelf-row"><div class="shelf-books"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div></div>
+    <div class="shelf-row"><div class="shelf-books"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div></div>
+    <div class="shelf-row"><div class="shelf-books"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div></div>
+  </div>
+  <div class="falling-books">
+    <div class="book-3d book-red"><div class="cover"><div class="spine"></div><div class="lines"><span></span><span></span></div></div><div class="pages"></div></div>
+    <div class="book-3d book-green"><div class="cover"><div class="spine"></div><div class="lines"><span></span><span></span></div></div><div class="pages"></div></div>
+    <div class="book-3d book-blue"><div class="cover"><div class="spine"></div><div class="lines"><span></span><span></span></div></div><div class="pages"></div></div>
+    <div class="book-3d book-brown"><div class="cover"><div class="spine"></div><div class="lines"><span></span><span></span></div></div><div class="pages"></div></div>
+    <div class="book-3d book-gold"><div class="cover"><div class="spine"></div><div class="lines"><span></span><span></span></div></div><div class="pages"></div></div>
+    <div class="book-3d book-purple"><div class="cover"><div class="spine"></div><div class="lines"><span></span><span></span></div></div><div class="pages"></div></div>
+    <div class="book-3d book-teal"><div class="cover"><div class="spine"></div><div class="lines"><span></span><span></span></div></div><div class="pages"></div></div>
+    <div class="book-3d book-red"><div class="cover"><div class="spine"></div><div class="lines"><span></span><span></span></div></div><div class="pages"></div></div>
+    <div class="book-3d book-blue"><div class="cover"><div class="spine"></div><div class="lines"><span></span><span></span></div></div><div class="pages"></div></div>
+    <div class="book-3d book-green"><div class="cover"><div class="spine"></div><div class="lines"><span></span><span></span></div></div><div class="pages"></div></div>
+  </div>
+  <div class="splash-content">
+    <div class="splash-logo"><span>BA</span></div>
+    <h1 class="splash-title">Biblioteca <span>Aconchego</span></h1>
+    <p class="splash-subtitle">Um refúgio para leitores</p>
+    <div class="screen active" id="screen-select">
+      <div class="splash-actions">
+        <button class="splash-btn" onclick="goToLogin('leitor')">
+          <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+          Área do Leitor
+        </button>
+        <button class="splash-btn admin" onclick="goToLogin('admin')">
+          <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l-10 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12v-6l-9-5zm0 11h-3v-3h3v3zm0-5h-3v-3h3v3zm3 5h-3v-3h3v3zm0-5h-3v-3h3v3z"/></svg>
+          Bibliotecário
+        </button>
+      </div>
+      <p class="splash-hint">✦ Acesso restrito a leitores cadastrados ✦</p>
+    </div>
+    <div class="screen" id="screen-login-leitor">
+      <div class="glass-panel">
+        <button class="back-btn" onclick="goBackToSelect()"><svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg> Voltar</button>
+        <h2 class="login-title">Bem-vindo(a)!</h2>
+        <p class="login-subtitle">Entre para acessar o acervo</p>
+        <div class="form-group"><label>E-mail</label><input type="email" id="loginEmail" placeholder="seu@email.com"></div>
+        <div class="form-group"><label>Senha</label><input type="password" id="loginPassword" placeholder="Sua senha"></div>
+        <button class="btn-auth" onclick="doLogin()">Entrar como Leitor</button>
+        <button class="btn-register-link" onclick="showRegister()">Cadastrar Nova Conta</button>
+        <div class="divider">ou continue com</div>
+        <div class="social-btns">
+          <button class="social-btn" onclick="loginSocial('Google')"><svg viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.4 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.6-11.3-8.4l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.1 5.6l6.2 5.2C36.9 39.6 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg> Google</button>
+          <button class="social-btn" onclick="loginSocial('Facebook')"><svg viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.96.93-1.96 1.89v2.25h3.33l-.53 3.49h-2.8V24C19.61 23.1 24 18.1 24 12.07z"/></svg> Facebook</button>
+        </div>
+      </div>
+    </div>
+    <div class="screen" id="screen-register-leitor">
+      <div class="glass-panel">
+        <button class="back-btn" onclick="goToLogin('leitor')"><svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg> Voltar</button>
+        <h2 class="login-title">Criar Conta</h2>
+        <p class="login-subtitle">Junte-se à nossa comunidade</p>
+        <div class="form-group"><label>Nome completo</label><input type="text" id="regName" placeholder="Seu nome"></div>
+        <div class="form-group"><label>E-mail</label><input type="email" id="regEmail" placeholder="seu@email.com"></div>
+        <div class="form-group"><label>Senha</label><input type="password" id="regPassword" placeholder="Crie uma senha"></div>
+        <button class="btn-auth" onclick="doRegister()">Criar Conta de Leitor</button>
+        <p class="auth-footer" style="margin-top:1rem;text-align:center;font-size:.8rem;color:#b89a6a;">Já tem conta? <a onclick="goToLogin('leitor')" style="color:var(--dourado);cursor:pointer;font-weight:600;">Entrar</a></p>
+      </div>
+    </div>
+    <div class="screen" id="screen-login-admin">
+      <div class="glass-panel" style="border-color:rgba(166,124,82,.5);">
+        <button class="back-btn" onclick="goBackToSelect()"><svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg> Voltar</button>
+        <h2 class="login-title" style="color:#d4b996;">Acesso Restrito</h2>
+        <p class="login-subtitle">Área exclusiva para bibliotecários</p>
+        <div class="form-group"><label>E-mail do Bibliotecário</label><input type="email" id="adminEmail" placeholder="admin@biblioteca.com"></div>
+        <div class="form-group"><label>Senha de Acesso</label><input type="password" id="adminPassword" placeholder="Digite a senha de admin"></div>
+        <button class="btn-auth" onclick="doAdminLogin()" style="background:#a67c52;color:#fff;">Acessar Painel</button>
+        <p class="auth-footer" style="font-size:.7rem;margin-top:1rem;color:#999;text-align:center;">Dica: use a senha <strong>admin123</strong>.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<header id="mainHeader">
+  <div class="header-content">
+    <div class="logo"><span class="monogram">BA</span>Biblioteca <span>Aconchego</span></div>
+    <div class="user-area">
+      <div class="user-info" id="userInfo">
+        <div class="avatar" id="avatar">U</div>
+        <span id="userName">Usuário</span>
+        <span id="userRole" style="font-size:.75rem;background:var(--papel);padding:.2rem .5rem;border-radius:4px;color:var(--madeira-escura);font-weight:600;">Leitor</span>
+        <button class="btn btn-outline" id="logoutBtn" style="padding:.4rem .8rem;font-size:.8rem;border-color:var(--caramelo);color:var(--caramelo);">Sair</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- TABS -->
+<div class="tabs-container" id="mainTabsContainer">
+  <div class="tabs" id="mainTabs">
+    <div class="tab active" data-tab="acervo">📖 Acervo</div>
+    <div class="tab" data-tab="mangas">🇯🇵 Mangás</div>
+    <div class="tab" data-tab="recomendacoes">💡 Recomendações</div>
+    <div class="tab" data-tab="doacoes" id="tabDoacoes">🎁 Doações</div>
+    <div class="tab" data-tab="historico" id="tabHistorico">📜 Meu Histórico</div>
+    <div class="tab admin-tab" data-tab="admin" id="adminTab">📋 Painel do Bibliotecário</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<main id="mainContent">
+  <section class="tab-content active" id="acervo">
+    <h2 class="section-title">Acervo da Biblioteca</h2>
+    <p class="section-subtitle">Explore nossos livros por tema e status de disponibilidade.</p>
+    <div class="filters">
+      <input type="text" id="searchBook" placeholder="🔍 Buscar por título ou autor...">
+      <select id="filterTheme">
+        <option value="">Todos os temas</option>
+        <option value="Romance">Romance</option><option value="Ficção">Ficção</option>
+        <option value="Suspense">Suspense</option><option value="História">História</option>
+        <option value="Autoajuda">Autoajuda</option><option value="Infantil">Infantil</option>
+        <option value="Mangá">Mangá</option>
+      </select>
+      <select id="filterStatus">
+        <option value="">Todos os status</option>
+        <option value="disponivel">✅ Pronto para ler</option>
+        <option value="reservado">🔒 Reservado</option>
+        <option value="em-uso">📖 Em uso</option>
+      </select>
+    </div>
+    <div class="books-grid" id="booksGrid"></div>
+  </section>
+
+  <section class="tab-content" id="mangas">
+    <h2 class="section-title">Nossa Coleção de Mangás</h2>
+    <p class="section-subtitle">Explore histórias em quadrinhos japonesas, do clássico ao moderno.</p>
+    <div class="filters"><input type="text" id="searchManga" placeholder="🔍 Buscar mangá por título ou autor..."></div>
+    <div class="books-grid" id="mangasGrid"></div>
+  </section>
+
+  <section class="tab-content" id="recomendacoes">
+    <h2 class="section-title">Recomendações de Livros e Mangás</h2>
+    <p class="section-subtitle">Sugira um título que você gostaria de ver por aqui!</p>
+    <div class="form-card">
+      <div class="form-group-2"><label>Título *</label><input type="text" id="recTitle" placeholder="Ex.: O Hobbit ou One Piece"></div>
+      <div class="form-group-2"><label>Autor</label><input type="text" id="recAuthor" placeholder="Ex.: J.R.R. Tolkien"></div>
+      <div class="form-group-2"><label>Por que você recomenda?</label><textarea id="recReason" placeholder="Conte um pouco..."></textarea></div>
+      <button class="btn btn-gold" style="width:100%;" onclick="addRecommendation()">💡 Enviar Recomendação</button>
+    </div>
+    <h3 class="section-title" style="font-size:1.4rem;margin-top:3rem;border-bottom:2px solid var(--papel);padding-bottom:.5rem;">Recomendações da Comunidade</h3>
+    <div id="recommendationsList" style="margin-top:1.5rem;"></div>
+  </section>
+
+  <section class="tab-content" id="doacoes">
+    <h2 class="section-title">Doação de Livros e Mangás</h2>
+    <p class="section-subtitle">Doe itens que você não usa mais e faça a alegria de outros leitores!</p>
+    <div class="form-card">
+      <div class="form-group-2"><label>Título *</label><input type="text" id="donTitle" placeholder="Ex.: Dom Casmurro"></div>
+      <div class="form-group-2"><label>Autor</label><input type="text" id="donAuthor" placeholder="Ex.: Machado de Assis"></div>
+      <div class="form-group-2"><label>Tema/Categoria</label>
+        <select id="donTheme"><option value="Romance">Romance</option><option value="Ficção">Ficção</option><option value="Suspense">Suspense</option><option value="História">História</option><option value="Autoajuda">Autoajuda</option><option value="Infantil">Infantil</option><option value="Mangá">Mangá</option></select>
+      </div>
+      <div class="form-group-2"><label>Estado de Conservação</label>
+        <select id="donCondition"><option value="Ótimo">Ótimo</option><option value="Bom">Bom</option><option value="Razoável">Razoável</option></select>
+      </div>
+      <div class="form-group-2"><label>Observações</label><textarea id="donNotes" placeholder="Ex.: Edição de bolso..."></textarea></div>
+      <button class="btn btn-gold" style="width:100%;" onclick="addDonation()">🎁 Registrar Doação</button>
+    </div>
+    <h3 class="section-title" style="font-size:1.4rem;margin-top:3rem;border-bottom:2px solid var(--papel);padding-bottom:.5rem;">Doações Recentes</h3>
+    <div id="donationsList" style="margin-top:1.5rem;"></div>
+  </section>
+
+  <section class="tab-content" id="historico">
+    <h2 class="section-title">Meu Histórico de Leituras</h2>
+    <p class="section-subtitle">Acompanhe seus empréstimos, devoluções e avaliações.</p>
+    <div id="historyList"></div>
+  </section>
+
+  <section class="tab-content" id="admin">
+    <div class="admin-panel">
+      <div class="admin-header">
+        <div><h2 class="admin-title">Painel do Bibliotecário</h2><p class="admin-subtitle">Gerencie o acervo e avalie as doações.</p></div>
+        <button class="btn btn-gold" onclick="openAddBookModal()">+ Cadastrar Novo Item</button>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card"><h3>Total no Acervo</h3><div class="number" id="totalBooks">0</div></div>
+        <div class="stat-card"><h3>Disponíveis</h3><div class="number" style="color:#d4e8c5;" id="totalAvailable">0</div></div>
+        <div class="stat-card"><h3>Em Uso</h3><div class="number" style="color:#f5c4c4;" id="totalInUse">0</div></div>
+        <div class="stat-card"><h3>Doações Pendentes</h3><div class="number" style="color:#f8e4b5;" id="totalDonations">0</div></div>
+      </div>
+      <div style="margin-bottom:3rem;">
+        <h3 style="font-family:'Playfair Display',serif;font-size:1.4rem;color:#f8e4b5;margin-bottom:1rem;">Doações Aguardando Avaliação</h3>
+        <div id="adminDonationsList"></div>
+      </div>
+      <div style="margin-bottom:3rem;">
+        <h3 style="font-family:'Playfair Display',serif;font-size:1.4rem;color:#c9a227;margin-bottom:1rem;">Devoluções Aguardando Aprovação</h3>
+        <div id="adminReturnsList"></div>
+      </div>
+      <h3 style="font-family:'Playfair Display',serif;font-size:1.4rem;color:#c9a227;margin-bottom:1rem;">Status do Acervo</h3>
+      <div style="overflow-x:auto;">
+        <table class="admin-table">
+          <thead><tr><th>ID</th><th>Título</th><th>Autor</th><th>Tema</th><th>Status Atual</th><th>Alterar Status</th></tr></thead>
+          <tbody id="adminTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer id="mainFooter">📚 Biblioteca Aconchego — Feito com carinho para leitores apaixonados</footer>
+
+<div class="modal-overlay" id="addBookModal">
+  <div class="modal">
+    <button class="close-modal" onclick="closeAddBookModal()">×</button>
+    <h2>Novo Item</h2>
+    <p class="modal-subtitle">Cadastre um novo livro ou mangá no acervo</p>
+    <div class="form-group-2"><label>Título *</label><input type="text" id="newBookTitle" placeholder="Nome do livro/mangá"></div>
+    <div class="form-group-2"><label>Autor</label><input type="text" id="newBookAuthor" placeholder="Nome do autor"></div>
+    <div class="form-group-2"><label>Tema</label>
+      <select id="newBookTheme"><option value="Romance">Romance</option><option value="Ficção">Ficção</option><option value="Suspense">Suspense</option><option value="História">História</option><option value="Autoajuda">Autoajuda</option><option value="Infantil">Infantil</option><option value="Mangá">Mangá</option></select>
+    </div>
+    <button class="btn btn-gold" style="width:100%;" onclick="doAddBook()">Salvar no Acervo</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ========== CONFIG SUPABASE ==========
+const SUPABASE_URL = 'https://qpcufcbcsxnnkvebhvko.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFwY3VmY2Jjc3hubmt2ZWJodmtvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI0MTk3MzMsImV4cCI6MjEwNzk5NTczM30.PqxsQc9JynJrNQ2UmEZ_ONKlSn_XdJd8YvCPcSGFfn0';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ========== ESTADO ==========
+let currentUser = null;
+let books = [];
+let recommendations = [];
+let donations = [];
+let history = [];
+
+// ========== SPLASH ==========
+window.addEventListener('DOMContentLoaded', async () => {
+  if (sessionStorage.getItem('splashDone') === '1') {
+    document.getElementById('splash').style.display = 'none';
+    showMainApp();
+    const saved = localStorage.getItem('bibliotecaCurrentUser');
+    if (saved) {
+      const user = JSON.parse(saved);
+      setUser(user, true);
+      await loadAllData();
+    }
+  }
+});
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function goToLogin(role) { showScreen(role === 'leitor' ? 'screen-login-leitor' : 'screen-login-admin'); }
+function goBackToSelect() { showScreen('screen-select'); }
+function showRegister() { showScreen('screen-register-leitor'); }
+
+function enterLibrary() {
+  const splash = document.getElementById('splash');
+  splash.classList.add('hide');
+  sessionStorage.setItem('splashDone', '1');
+  setTimeout(() => splash.style.display = 'none', 900);
+  showMainApp();
+}
+function showMainApp() {
+  document.getElementById('mainHeader').style.display = 'block';
+  document.getElementById('mainTabsContainer').style.display = 'block';
+  document.getElementById('mainContent').style.display = 'block';
+  document.getElementById('mainFooter').style.display = 'block';
+}
+
+// ========== LOGIN ==========
+function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  if (!email) { showToast('Digite seu e-mail!'); return; }
+  setUser({ name: email.split('@')[0] || 'Leitor', email, role: 'leitor' });
+  showToast('Bem-vindo(a) de volta!');
+  loadAllData();
+}
+function loginSocial(provider) {
+  setUser({ name: `Leitor ${provider}`, email: `leitor@${provider.toLowerCase()}.com`, role: 'leitor' });
+  showToast(`Bem-vindo(a) via ${provider}!`);
+  loadAllData();
+}
+function doRegister() {
+  const name = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const pass = document.getElementById('regPassword').value.trim();
+  if (!name || !email || !pass) { showToast('Preencha todos os campos!'); return; }
+  setUser({ name, email, role: 'leitor' });
+  showToast(`Conta criada! Bem-vindo(a), ${name}! ✨`);
+  loadAllData();
+}
+function doAdminLogin() {
+  const email = document.getElementById('adminEmail').value.trim();
+  const pass = document.getElementById('adminPassword').value.trim();
+  if (!email || !pass) { showToast('Preencha e-mail e senha!'); return; }
+  if (pass !== 'admin123') { showToast('Senha de bibliotecário incorreta!'); return; }
+  setUser({ name: 'Bibliotecário Chefe', email, role: 'admin' });
+  showToast('Painel do Bibliotecário liberado! 📋');
+  loadAllData();
+}
+
+function setUser(user, isRestore = false) {
+  currentUser = user;
+  localStorage.setItem('bibliotecaCurrentUser', JSON.stringify(user));
+  if (!isRestore) enterLibrary();
+
+  document.getElementById('userName').textContent = user.name;
+  document.getElementById('avatar').textContent = user.name.charAt(0).toUpperCase();
+  const roleBadge = document.getElementById('userRole');
+  const tabDoacoes = document.getElementById('tabDoacoes');
+  const tabHistorico = document.getElementById('tabHistorico');
+  const adminTab = document.getElementById('adminTab');
+
+  if (user.role === 'admin') {
+    roleBadge.textContent = 'Bibliotecário';
+    roleBadge.style.background = 'var(--dourado)';
+    roleBadge.style.color = 'var(--madeira-escura)';
+    adminTab.style.display = 'block';
+    tabDoacoes.style.display = 'none';
+    tabHistorico.style.display = 'none';
+    document.querySelector('.tab[data-tab="admin"]').click();
+  } else {
+    roleBadge.textContent = 'Leitor';
+    roleBadge.style.background = 'var(--papel)';
+    roleBadge.style.color = 'var(--madeira-escura)';
+    adminTab.style.display = 'none';
+    tabDoacoes.style.display = 'flex';
+    tabHistorico.style.display = 'flex';
+    document.querySelector('.tab[data-tab="acervo"]').click();
+  }
+}
+
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  currentUser = null;
+  localStorage.removeItem('bibliotecaCurrentUser');
+  sessionStorage.removeItem('splashDone');
+  location.reload();
+});
+
+// ========== NAVEGAÇÃO ABAS ==========
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    if (!currentUser) return;
+    if (tab.dataset.tab === 'admin' && currentUser.role !== 'admin') {
+      showToast('Acesso negado. Apenas bibliotecários.');
+      return;
+    }
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.tab).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (tab.dataset.tab === 'admin') renderAdminDashboard();
+  });
+});
+
+// ========== CARREGAR DADOS ==========
+async function loadAllData() {
+  await Promise.all([loadBooks(), loadRecs(), loadDonations(), loadHistory()]);
+  renderBooks(); renderMangas(); renderRecommendations(); renderDonations(); renderHistory();
+  if (currentUser?.role === 'admin') renderAdminDashboard();
+}
+async function loadBooks() {
+  const { data, error } = await sb.from('books').select('*').order('id');
+  if (error) { console.error(error); showToast('Erro ao carregar acervo.'); return; }
+  books = data || [];
+}
+async function loadRecs() {
+  const { data, error } = await sb.from('recommendations').select('*').order('created_at', { ascending: false });
+  if (error) { console.error(error); return; }
+  recommendations = data || [];
+}
+async function loadDonations() {
+  const { data, error } = await sb.from('donations').select('*').order('created_at', { ascending: false });
+  if (error) { console.error(error); return; }
+  donations = data || [];
+}
+async function loadHistory() {
+  const { data, error } = await sb.from('history').select('*').order('created_at', { ascending: false });
+  if (error) { console.error(error); return; }
+  history = data || [];
+}
+
+// ========== EMPRÉSTIMO ==========
+async function borrowBook(bookId) {
+  if (!currentUser) { showToast('Faça login para emprestar.'); return; }
+  const book = books.find(b => b.id === bookId);
+  if (!book || book.status !== 'disponivel') { showToast('Livro indisponível.'); return; }
+  const { error: e1 } = await sb.from('books').update({ status: 'em-uso' }).eq('id', bookId);
+  if (e1) { showToast('Erro ao emprestar.'); return; }
+  const { error: e2 } = await sb.from('history').insert({
+    book_title: book.title, book_author: book.author,
+    user_name: currentUser.name,
+    date_borrowed: new Date().toLocaleDateString('pt-BR'),
+    status: 'em-posse'
+  });
+  if (e2) { showToast('Erro ao registrar histórico.'); return; }
+  showToast(`Você pegou emprestado "${book.title}". Bom proveito! 📖`);
+  await loadAllData();
+}
+
+// ========== SOLICITAR DEVOLUÇÃO ==========
+async function returnBook(bookId) {
+  if (!currentUser) { showToast('Faça login.'); return; }
+  const book = books.find(b => b.id === bookId);
+  if (!book || book.status !== 'em-uso') { showToast('Livro não está em uso.'); return; }
+  const { error: e1 } = await sb.from('books').update({ status: 'devolucao-pendente' }).eq('id', bookId);
+  if (e1) { showToast('Erro ao solicitar devolução.'); return; }
+  const histItem = history.find(h => h.book_title === book.title && h.user_name === currentUser.name && h.status === 'em-posse');
+  if (histItem) {
+    await sb.from('history').update({
+      status: 'devolucao-pendente',
+      date_return_requested: new Date().toLocaleDateString('pt-BR')
+    }).eq('id', histItem.id);
+  }
+  showToast(`Devolução de "${book.title}" solicitada. Aguarde aprovação. ⏳`);
+  await loadAllData();
+}
+function returnHistoryBook(bookTitle) {
+  const book = books.find(b => b.title === bookTitle && b.status === 'em-uso');
+  if (book) returnBook(book.id);
+  else showToast('Livro não encontrado ou já devolvido.');
+}
+
+// ========== APROVAR DEVOLUÇÃO ==========
+async function approveReturn(historyId) {
+  if (!currentUser || currentUser.role !== 'admin') { showToast('Apenas o bibliotecário pode aprovar.'); return; }
+  const h = history.find(x => x.id === historyId);
+  if (!h) return;
+  const { error: e1 } = await sb.from('history').update({
+    status: 'devolvido', date_returned: new Date().toLocaleDateString('pt-BR')
+  }).eq('id', historyId);
+  if (e1) { showToast('Erro ao aprovar.'); return; }
+  const book = books.find(b => b.title === h.book_title && b.status === 'devolucao-pendente');
+  if (book) await sb.from('books').update({ status: 'disponivel' }).eq('id', book.id);
+  showToast(`Devolução de "${h.book_title}" aprovada! ✅`);
+  await loadAllData();
+}
+
+// ========== AVALIAÇÃO ==========
+async function rateHistoryBook(historyId, rating, btn) {
+  if (!currentUser) { showToast('Faça login para avaliar!'); return; }
+  const { error } = await sb.from('history').update({ rating }).eq('id', historyId);
+  if (error) { showToast('Erro ao avaliar.'); return; }
+  btn.parentElement.querySelectorAll('.rating-option').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  const item = history.find(h => h.id === historyId);
+  showToast(`Você avaliou "${item.book_title}" como "${rating}"!`);
+  if (item) item.rating = rating;
+}
+
+// ========== ADMIN ==========
+async function changeStatus(bookId, newStatus) {
+  const { error } = await sb.from('books').update({ status: newStatus }).eq('id', bookId);
+  if (error) { showToast('Erro ao atualizar.'); return; }
+  showToast('Status atualizado!');
+  await loadAllData();
+}
+async function reviewDonation(donationId, action) {
+  const donation = donations.find(d => d.id === donationId);
+  if (!donation) return;
+  if (action === 'aceitar') {
+    const { error } = await sb.from('books').insert({
+      title: donation.title, author: donation.author || 'Desconhecido',
+      theme: donation.theme, status: 'disponivel'
+    });
+    if (error) { showToast('Erro ao adicionar doação.'); return; }
+    showToast(`Doação de "${donation.title}" aceita! 📖`);
+  } else {
+    showToast(`Doação de "${donation.title}" recusada.`);
+  }
+  await sb.from('donations').delete().eq('id', donationId);
+  await loadAllData();
+}
+function openAddBookModal() { document.getElementById('addBookModal').classList.add('active'); }
+function closeAddBookModal() { document.getElementById('addBookModal').classList.remove('active'); }
+async function doAddBook() {
+  const title = document.getElementById('newBookTitle').value.trim();
+  const author = document.getElementById('newBookAuthor').value.trim();
+  const theme = document.getElementById('newBookTheme').value;
+  if (!title) { showToast('Informe o título!'); return; }
+  const { error } = await sb.from('books').insert({ title, author: author || 'Desconhecido', theme, status: 'disponivel' });
+  if (error) { showToast('Erro ao cadastrar.'); return; }
+  document.getElementById('newBookTitle').value = '';
+  document.getElementById('newBookAuthor').value = '';
+  closeAddBookModal();
+  showToast(`"${title}" cadastrado! 📖`);
+  await loadAllData();
+}
+
+// ========== RENDER ==========
+const statusLabels = {
+  'disponivel': '✅ Pronto para ler',
+  'reservado': '🔒 Reservado',
+  'em-uso': '📖 Em uso',
+  'devolucao-pendente': '⏳ Devolução pendente'
+};
+
+function renderBooks() {
+  const grid = document.getElementById('booksGrid');
+  if (!grid) return;
+  const search = (document.getElementById('searchBook').value || '').toLowerCase();
+  const theme = document.getElementById('filterTheme').value;
+  const status = document.getElementById('filterStatus').value;
+  const filtered = books.filter(b => {
+    if (b.theme === 'Mangá') return false;
+    const mS = b.title.toLowerCase().includes(search) || (b.author || '').toLowerCase().includes(search);
+    const mT = !theme || b.theme === theme;
+    const mSt = !status || b.status === status;
+    return mS && mT && mSt;
+  });
+  if (filtered.length === 0) {
+    grid.innerHTML = '<p style="color:var(--caramelo);grid-column:1/-1;text-align:center;padding:2rem;">Nenhum livro encontrado.</p>';
+    return;
+  }
+  grid.innerHTML = filtered.map(b => `
+    <div class="book-card">
+      <div class="book-title">${b.title}</div>
+      <div class="book-author">por ${b.author || 'Desconhecido'}</div>
+      <span class="book-theme">${b.theme}</span>
+      <div class="book-status status-${b.status}">${statusLabels[b.status] || b.status}</div>
+      <div class="book-actions">
+        ${b.status === 'disponivel'
+          ? `<button class="btn-borrow" onclick="borrowBook(${b.id})">📚 Emprestar</button>`
+          : b.status === 'em-uso'
+            ? `<button class="btn-return" onclick="returnBook(${b.id})">📤 Solicitar Devolução</button>`
+            : b.status === 'devolucao-pendente'
+              ? `<button class="btn-disabled" disabled>⏳ Aguardando Bibliotecário</button>`
+              : `<button class="btn-disabled" disabled>🔒 Indisponível</button>`}
+      </div>
+    </div>`).join('');
+}
+
+function renderMangas() {
+  const grid = document.getElementById('mangasGrid');
+  if (!grid) return;
+  const search = (document.getElementById('searchManga')?.value || '').toLowerCase();
+  const filtered = books.filter(b => {
+    if (b.theme !== 'Mangá') return false;
+    return b.title.toLowerCase().includes(search) || (b.author || '').toLowerCase().includes(search);
+  });
+  if (filtered.length === 0) {
+    grid.innerHTML = '<p style="color:var(--caramelo);grid-column:1/-1;text-align:center;padding:2rem;">Nenhum mangá encontrado.</p>';
+    return;
+  }
+  grid.innerHTML = filtered.map(b => `
+    <div class="book-card">
+      <div class="book-title">${b.title}</div>
+      <div class="book-author">por ${b.author || 'Desconhecido'}</div>
+      <span class="book-theme" style="background:#ffe4e1;color:#b22222;">🇯🇵 ${b.theme}</span>
+      <div class="book-status status-${b.status}">${statusLabels[b.status] || b.status}</div>
+      <div class="book-actions">
+        ${b.status === 'disponivel'
+          ? `<button class="btn-borrow" onclick="borrowBook(${b.id})">📚 Emprestar</button>`
+          : b.status === 'em-uso'
+            ? `<button class="btn-return" onclick="returnBook(${b.id})">📤 Solicitar Devolução</button>`
+            : b.status === 'devolucao-pendente'
+              ? `<button class="btn-disabled" disabled>⏳ Aguardando Bibliotecário</button>`
+              : `<button class="btn-disabled" disabled>🔒 Indisponível</button>`}
+      </div>
+    </div>`).join('');
+}
+
+function renderHistory() {
+  const container = document.getElementById('historyList');
+  if (!container || !currentUser) return;
+  const userHistory = history.filter(h => h.user_name === currentUser.name);
+  if (userHistory.length === 0) {
+    container.innerHTML = '<p style="color:var(--caramelo);text-align:center;padding:2rem;">Você ainda não tem histórico.</p>';
+    return;
+  }
+  const opts = ['Ruim', 'Razoável', 'Mediano', 'Bom', 'Ótimo'];
+  container.innerHTML = userHistory.map(h => {
+    const ratingButtons = opts.map(o => `
+      <button class="rating-option ${h.rating === o ? 'selected' : ''}" onclick="rateHistoryBook(${h.id}, '${o}', this)">${o}</button>`).join('');
+    let badgeCls = 'badge-em-posse', badge = '📚 Em sua posse';
+    if (h.status === 'devolucao-pendente') { badgeCls = 'badge-devolucao-pendente'; badge = '⏳ Aguardando aprovação'; }
+    else if (h.status === 'devolvido') { badgeCls = 'badge-devolvido'; badge = '✅ Devolvido'; }
+    return `
+      <div class="history-item ${h.status === 'devolvido' ? 'returned' : ''}">
+        <div class="history-info">
+          <h4>${h.book_title}</h4>
+          <p>por ${h.book_author || 'Desconhecido'}</p>
+          <span class="history-badge ${badgeCls}">${badge}</span>
+          <div style="margin-top:.5rem;font-size:.8rem;color:#999;">
+            <p>Pegou em: <strong>${h.date_borrowed || '—'}</strong></p>
+            ${h.date_returned ? `<p>Devolveu em: <strong>${h.date_returned}</strong></p>` : ''}
+            ${h.date_return_requested && !h.date_returned ? `<p>Solicitou em: <strong>${h.date_return_requested}</strong></p>` : ''}
+          </div>
+        </div>
+        <div style="text-align:right;min-width:200px;">
+          ${h.status === 'em-posse'
+            ? `<button class="btn-return-history" onclick="returnHistoryBook('${h.book_title.replace(/'/g, "\\'")}')">Solicitar Devolução</button>`
+            : h.status === 'devolucao-pendente'
+              ? `<button class="btn-disabled" disabled style="margin-top:.5rem;">⏳ Aguardando Bibliotecário</button>`
+              : ''}
+          <div class="history-rating-area">
+            <span class="history-rating-label">Avalie este livro:</span>
+            <div class="rating-scale">${ratingButtons}</div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderRecommendations() {
+  const container = document.getElementById('recommendationsList');
+  if (!container) return;
+  if (recommendations.length === 0) {
+    container.innerHTML = '<p style="color:var(--caramelo);text-align:center;padding:2rem;">Nenhuma recomendação ainda.</p>';
+    return;
+  }
+  container.innerHTML = recommendations.map(r => `
+    <div class="list-item">
+      <div class="list-item-content">
+        <h4>${r.title}</h4>
+        <p>${r.author ? 'por ' + r.author + ' • ' : ''}${r.reason || 'Sem comentário'}</p>
+        <button class="like-btn" onclick="likeRec(${r.id}, ${r.likes || 0})">❤️ ${r.likes || 0}</button>
+      </div>
+      <div class="list-item-meta">Sugerido por<br><strong>${r.user_name}</strong></div>
+    </div>`).join('');
+}
+async function likeRec(id, currentLikes) {
+  if (!currentUser) { showToast('Faça login para curtir!'); return; }
+  const { error } = await sb.from('recommendations').update({ likes: (currentLikes || 0) + 1 }).eq('id', id);
+  if (error) return;
+  await loadRecs(); renderRecommendations();
+}
+async function addRecommendation() {
+  if (!currentUser) { showToast('Faça login para recomendar!'); return; }
+  const title = document.getElementById('recTitle').value.trim();
+  const author = document.getElementById('recAuthor').value.trim();
+  const reason = document.getElementById('recReason').value.trim();
+  if (!title) { showToast('Informe o título!'); return; }
+  const { error } = await sb.from('recommendations').insert({ title, author, reason, user_name: currentUser.name, likes: 0 });
+  if (error) { showToast('Erro ao enviar.'); return; }
+  document.getElementById('recTitle').value = '';
+  document.getElementById('recAuthor').value = '';
+  document.getElementById('recReason').value = '';
+  showToast('Recomendação enviada! 💡');
+  await loadRecs(); renderRecommendations();
+}
+
+function renderDonations() {
+  const container = document.getElementById('donationsList');
+  if (!container) return;
+  if (donations.length === 0) {
+    container.innerHTML = '<p style="color:var(--caramelo);text-align:center;padding:2rem;">Nenhuma doação registrada.</p>';
+    return;
+  }
+  container.innerHTML = donations.map(d => `
+    <div class="list-item" style="border-left-color:${d.status === 'pendente' ? '#f8e4b5' : '#6b7a4a'};">
+      <div class="list-item-content">
+        <h4>${d.title} ${d.status === 'pendente' ? '<span style="font-size:.7rem;color:#7a5a10;background:#f8e4b5;padding:.2rem .5rem;border-radius:4px;margin-left:.5rem;">Aguardando</span>' : ''}</h4>
+        <p>${d.author ? 'por ' + d.author + ' • ' : ''}${d.theme} • Estado: ${d.condition}</p>
+        ${d.notes ? '<p style="margin-top:.3rem;font-style:italic;font-size:.8rem;">"' + d.notes + '"</p>' : ''}
+      </div>
+      <div class="list-item-meta">Doado por<br><strong>${d.user_name}</strong></div>
+    </div>`).join('');
+}
+async function addDonation() {
+  if (!currentUser) { showToast('Faça login para doar!'); return; }
+  const title = document.getElementById('donTitle').value.trim();
+  const author = document.getElementById('donAuthor').value.trim();
+  const theme = document.getElementById('donTheme').value;
+  const condition = document.getElementById('donCondition').value;
+  const notes = document.getElementById('donNotes').value.trim();
+  if (!title) { showToast('Informe o título!'); return; }
+  const { error } = await sb.from('donations').insert({ title, author, theme, condition, notes, user_name: currentUser.name, status: 'pendente' });
+  if (error) { showToast('Erro ao registrar.'); return; }
+  document.getElementById('donTitle').value = '';
+  document.getElementById('donAuthor').value = '';
+  document.getElementById('donNotes').value = '';
+  showToast('Doação enviada! 🎁');
+  await loadDonations(); renderDonations();
+}
+
+function renderAdminDashboard() {
+  if (!currentUser || currentUser.role !== 'admin') return;
+
+  document.getElementById('totalBooks').textContent = books.length;
+  document.getElementById('totalAvailable').textContent = books.filter(b => b.status === 'disponivel').length;
+  document.getElementById('totalInUse').textContent = books.filter(b => b.status === 'em-uso').length;
+  const pendingDonations = donations.filter(d => d.status === 'pendente');
+  document.getElementById('totalDonations').textContent = pendingDonations.length;
+
+  const tbody = document.getElementById('adminTableBody');
+  if (books.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#b89a6a;padding:2rem;">Nenhum item.</td></tr>`;
+  } else {
+    tbody.innerHTML = books.map(b => {
+      let cls = 'badge-disponivel', txt = 'Disponível';
+      if (b.status === 'em-uso') { cls = 'badge-em-uso'; txt = 'Em Uso'; }
+      else if (b.status === 'reservado') { cls = 'badge-reservado'; txt = 'Reservado'; }
+      else if (b.status === 'devolucao-pendente') { cls = 'badge-reservado'; txt = 'Devolução Pendente'; }
+      return `
+        <tr>
+          <td>#${b.id}</td>
+          <td style="font-family:'Playfair Display',serif;font-weight:600;">${b.title}</td>
+          <td style="color:#b89a6a;">${b.author || '—'}</td>
+          <td>${b.theme}</td>
+          <td><span class="badge-status ${cls}">${txt}</span></td>
+          <td>
+            <select class="status-select" onchange="changeStatus(${b.id}, this.value)">
+              <option value="disponivel" ${b.status === 'disponivel' ? 'selected' : ''}>Disponível</option>
+              <option value="em-uso" ${b.status === 'em-uso' ? 'selected' : ''}>Em Uso</option>
+              <option value="reservado" ${b.status === 'reservado' ? 'selected' : ''}>Reservado</option>
+              <option value="devolucao-pendente" ${b.status === 'devolucao-pendente' ? 'selected' : ''}>Devolução Pendente</option>
+            </select>
+          </td>
+        </tr>`;
+    }).join('');
+  }
+
+  const dc = document.getElementById('adminDonationsList');
+  if (pendingDonations.length === 0) {
+    dc.innerHTML = `<p style="color:#b89a6a;font-style:italic;">Nenhuma doação pendente.</p>`;
+  } else {
+    dc.innerHTML = pendingDonations.map(d => `
+      <div class="donation-card">
+        <div class="donation-info">
+          <h4>${d.title}</h4>
+          <p>Autor: ${d.author || '—'} | Tema: ${d.theme} | Estado: ${d.condition}</p>
+          <p style="color:#f8e4b5;font-size:.8rem;margin-top:.3rem;">Doado por: ${d.user_name} ${d.notes ? `(${d.notes})` : ''}</p>
+        </div>
+        <div class="donation-actions">
+          <button class="btn-accept" onclick="reviewDonation(${d.id}, 'aceitar')">Aceitar</button>
+          <button class="btn-reject" onclick="reviewDonation(${d.id}, 'recusar')">Recusar</button>
+        </div>
+      </div>`).join('');
+  }
+
+  const rc = document.getElementById('adminReturnsList');
+  const pendingReturns = history.filter(h => h.status === 'devolucao-pendente');
+  if (pendingReturns.length === 0) {
+    rc.innerHTML = `<p style="color:#b89a6a;font-style:italic;">Nenhuma devolução pendente.</p>`;
+  } else {
+    rc.innerHTML = pendingReturns.map(h => `
+      <div class="donation-card">
+        <div class="donation-info">
+          <h4>${h.book_title}</h4>
+          <p>Autor: ${h.book_author || '—'} | Solicitado por: <strong>${h.user_name}</strong></p>
+          <p style="color:#f8e4b5;font-size:.8rem;margin-top:.3rem;">Solicitado em: ${h.date_return_requested || '—'}</p>
+        </div>
+        <div class="donation-actions">
+          <button class="btn-accept" onclick="approveReturn(${h.id})">✓ Aprovar Devolução</button>
+        </div>
+      </div>`).join('');
+  }
+}
+
+// ========== FILTROS ==========
+document.getElementById('searchBook')?.addEventListener('input', renderBooks);
+document.getElementById('filterTheme')?.addEventListener('change', renderBooks);
+document.getElementById('filterStatus')?.addEventListener('change', renderBooks);
+document.getElementById('searchManga')?.addEventListener('input', renderMangas);
+
+// ========== TOAST ==========
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>
