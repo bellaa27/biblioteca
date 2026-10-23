@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Biblioteca Aconchego 📚</title>
+<link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:ital,wght@0,500;0,700;1,700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --madeira: #6b4226; --madeira-escura: #4a2c17; --caramelo: #a67c52;
+    --bege: #f5ecd7; --creme: #fdf8ec; --papel: #efe4cc;
+    --dourado: #c9a227; --verde-oliva: #6b7a4a; --texto: #3b2a1a;
+    --sombra: rgba(74, 44, 23, 0.15); --vermelho-alerta: #c0392b;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: var(--creme); color: var(--texto); min-height: 100vh; overflow-y: auto; overflow-x: hidden;
+    background-image: radial-gradient(circle at 10% 20%, rgba(201, 162, 39, 0.03) 0%, transparent 40%), radial-gradient(circle at 90% 80%, rgba(166, 124, 82, 0.05) 0%, transparent 40%); }
+
+  /* SPLASH */
+  .splash { position: fixed; inset: 0; z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 1rem; overflow-y: auto; overflow-x: hidden; transition: opacity 0.9s ease, visibility 0.9s ease;
+    background: #1a0f08; background-image: radial-gradient(circle at 50% 30%, rgba(201, 162, 39, 0.15) 0%, transparent 60%), linear-gradient(180deg, #140a05 0%, #2b1a0e 50%, #1a0f08 100%); color: var(--bege); }
+  .splash.hide { opacity: 0; visibility: hidden; }
+  .splash::before { content: ''; position: absolute; inset: 0;
+    background-image: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.15) 2px, rgba(0,0,0,0.15) 4px), repeating-linear-gradient(90deg, transparent, transparent 3px, rgba(255,255,255,0.02) 3px, rgba(255,255,255,0.02) 6px); pointer-events: none; z-index: 0; }
+  .shelf-bg { position: absolute; inset: 0; pointer-events: none; z-index: 0; opacity: 0.15; display: flex; flex-direction: column; justify-content: space-evenly; }
+  .shelf-row-bg { width: 100%; height: 12px; background: #0a0502; box-shadow: 0 4px 10px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.1); position: relative; }
+  .shelf-books-bg { position: absolute; bottom: 100%; left: 0; width: 100%; height: 120px; display: flex; align-items: flex-end; gap: 2px; padding: 0 20px; overflow: hidden; }
+  .shelf-books-bg div { width: 15px; height: 80px; background: linear-gradient(to right, #5a1414, #7a1f1f); border-radius: 1px 2px 0 0; box-shadow: inset -2px 0 4px rgba(0,0,0,0.6); }
+  .shelf-books-bg div:nth-child(2n) { height: 90px; background: linear-gradient(to right, #1e3a5a, #2f5a8a); }
+  .shelf-books-bg div:nth-child(3n) { height: 70px; background: linear-gradient(to right, #4a2c17, #6b4226); }
+  .shelf-books-bg div:nth-child(5n) { height: 95px; background: linear-gradient(to right, #4a1e5a, #6b2f8a); }
+
+  .frame { position: absolute; inset: 15px; border: 2px solid rgba(201, 162, 39, 0.3); border-radius: 4px; pointer-events: none; z-index: 1; }
+  .frame::before { content: ''; position: absolute; inset: 6px; border: 1px solid rgba(201, 162, 39, 0.15); border-radius: 2px; }
+  .corner { position: absolute; width: 30px; height: 30px; border: 2px solid var(--dourado); z-index: 2; opacity: 0.6; }
+  .corner.tl { top: 11px; left: 11px; border-right: none; border-bottom: none; }
+  .corner.tr { top: 11px; right: 11px; border-left: none; border-bottom: none; }
+  .corner.bl { bottom: 11px; left: 11px; border-right: none; border-top: none; }
+  .corner.br { bottom: 11px; right: 11px; border-left: none; border-top: none; }
+
+  .falling-books { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 1; }
+  .book-3d { position: absolute; width: 50px; height: 75px; top: -120px; opacity: 0; animation: bookFall linear infinite; filter: drop-shadow(0 15px 25px rgba(0,0,0,0.9)); }
+  .book-3d .cover { position: absolute; inset: 0; border-radius: 2px 4px 4px 2px;
+    box-shadow: inset -4px 0 6px rgba(0,0,0,0.6), inset 4px 0 6px rgba(255,255,255,0.1), 2px 2px 8px rgba(0,0,0,0.6);
+    display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .book-3d .spine { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: rgba(0,0,0,0.5); border-right: 1px solid rgba(255,255,255,0.15); border-top: 2px solid var(--dourado); border-bottom: 2px solid var(--dourado); }
+  .book-3d .lines { position: absolute; left: 10px; right: 4px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 2px; }
+  .book-3d .lines span { height: 1px; background: rgba(201, 162, 39, 0.5); border-radius: 2px; }
+  .book-3d .lines span:nth-child(1) { width: 60%; } .book-3d .lines span:nth-child(2) { width: 40%; }
+  .book-3d .pages { position: absolute; right: -3px; top: 2px; bottom: 2px; width: 4px;
+    background: repeating-linear-gradient(0deg, #e8dcc4 0px, #e8dcc4 1.5px, #c4b08a 1.5px, #c4b08a 2.5px); border-radius: 0 2px 2px 0; box-shadow: 1px 0 3px rgba(0,0,0,0.5); }
+  .book-red .cover { background: linear-gradient(135deg, #4a0e0e 0%, #7a1f1f 50%, #2a0505 100%); }
+  .book-green .cover { background: linear-gradient(135deg, #1e2e1e 0%, #3a5a3a 50%, #0e150e 100%); }
+  .book-blue .cover { background: linear-gradient(135deg, #0e1e2e 0%, #1e3a5a 50%, #050e15 100%); }
+  .book-brown .cover { background: linear-gradient(135deg, #2a180c 0%, #4a2c17 50%, #150a04 100%); }
+  .book-gold .cover { background: linear-gradient(135deg, #4a3a0a 0%, #8a6b1a 50%, #2a1f05 100%); }
+  .book-purple .cover { background: linear-gradient(135deg, #2a0e3a 0%, #4a1e5a 50%, #150518 100%); }
+  .book-teal .cover { background: linear-gradient(135deg, #0e2a2a 0%, #1a4a4a 50%, #051515 100%); }
+  @keyframes bookFall {
+    0% { top: -120px; opacity: 0; transform: rotate(var(--rot-start)) translateZ(0); }
+    10% { opacity: 1; } 90% { opacity: 1; }
+    100% { top: 110vh; opacity: 0; transform: rotate(var(--rot-end)) translateZ(0); }
+  }
+  .book-3d:nth-child(1)  { left: 8%;  --rot-start: -15deg; --rot-end: 45deg;  animation-duration: 16s; animation-delay: 0s; }
+  .book-3d:nth-child(2)  { left: 22%; --rot-start: 20deg;  --rot-end: -60deg; animation-duration: 20s; animation-delay: 3s; }
+  .book-3d:nth-child(3)  { left: 35%; --rot-start: -30deg; --rot-end: 80deg;  animation-duration: 18s; animation-delay: 6s; }
+  .book-3d:nth-child(4)  { left: 48%; --rot-start: 10deg;  --rot-end: -40deg; animation-duration: 22s; animation-delay: 2s; }
+  .book-3d:nth-child(5)  { left: 60%; --rot-start: -20deg; --rot-end: 55deg;  animation-duration: 17s; animation-delay: 8s; }
+  .book-3d:nth-child(6)  { left: 75%; --rot-start: 25deg;  --rot-end: -70deg; animation-duration: 21s; animation-delay: 4s; }
+  .book-3d:nth-child(7)  { left: 85%; --rot-start: -10deg; --rot-end: 50deg;  animation-duration: 19s; animation-delay: 10s; }
+  .book-3d:nth-child(8)  { left: 92%; --rot-start: 35deg;  --rot-end: -55deg; animation-duration: 23s; animation-delay: 5s; }
+  .book-3d:nth-child(9)  { left: 15%; --rot-start: -25deg; --rot-end: 60deg;  animation-duration: 15s; animation-delay: 12s; }
+  .book-3d:nth-child(10) { left: 68%; --rot-start: 15deg;  --rot-end: -50deg; animation-duration: 24s; animation-delay: 15s; }
+
+  .splash-content { position: relative; z-index: 2; animation: splashFadeIn 1.5s ease both; width: 100%; max-width: 380px; margin: auto; }
+  @keyframes splashFadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+  .splash-logo { width: 100px; height: 100px; margin: 0 auto 0.8rem; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.8) 0%, transparent 40%), radial-gradient(circle at 50% 50%, #fdf8ec 0%, #e0c98f 70%, #a68a4a 100%);
+    position: relative; display: flex; align-items: center; justify-content: center;
+    box-shadow: inset 0 2px 6px rgba(255,255,255,0.8), inset 0 -2px 6px rgba(0,0,0,0.3), 0 0 0 3px #6b4226, 0 0 0 6px #c9a227, 0 6px 20px rgba(0,0,0,0.8), 0 0 30px rgba(201, 162, 39, 0.3);
+    animation: glowPulse 4s ease-in-out infinite; }
+  .splash-logo span { font-family: 'Great Vibes', cursive; font-weight: 400; font-size: 3.2rem; letter-spacing: -2px; color: var(--madeira-escura);
+    text-shadow: 1px 2px 3px rgba(255,255,255,0.7), -1px -1px 2px rgba(0,0,0,0.3); line-height: 0; transform: translateY(6px); }
+  .splash-logo::before, .splash-logo::after { content: ''; position: absolute; left: 50%; transform: translateX(-50%); width: 25px; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(74,44,23,0.5), transparent); }
+  .splash-logo::before { top: 10px; } .splash-logo::after { bottom: 10px; }
+  @keyframes glowPulse {
+    0%, 100% { box-shadow: inset 0 2px 6px rgba(255,255,255,0.8), inset 0 -2px 6px rgba(0,0,0,0.3), 0 0 0 3px #6b4226, 0 0 0 6px #c9a227, 0 6px 20px rgba(0,0,0,0.8), 0 0 30px rgba(201, 162, 39, 0.3); }
+    50% { box-shadow: inset 0 2px 6px rgba(255,255,255,0.8), inset 0 -2px 6px rgba(0,0,0,0.3), 0 0 0 3px #6b4226, 0 0 0 6px #c9a227, 0 6px 20px rgba(0,0,0,0.8), 0 0 50px rgba(255, 215, 120, 0.6); }
+  }
+  .splash-title { font-family: 'Playfair Display', serif; font-size: 1.8rem; font-weight: 700; letter-spacing: 1px; color: #fdf8ec; text-shadow: 0 3px 10px rgba(0,0,0,0.9); margin-bottom: 0.1rem; }
+  .splash-title span { color: var(--dourado); }
+  .splash-subtitle { font-family: 'Great Vibes', cursive; font-size: 1.3rem; color: #e6d3a8; margin-bottom: 1.2rem; text-shadow: 0 2px 8px rgba(0,0,0,0.8); }
+
+  .screen { display: none; animation: fadeIn 0.4s ease; }
+  .screen.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+  .splash-actions { display: flex; gap: 0.8rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1rem; }
+  .splash-btn { padding: 0.8rem 1.5rem; font-size: 0.85rem; font-weight: 600; letter-spacing: 1px; border: 2px solid var(--dourado); border-radius: 4px;
+    background: rgba(20, 10, 5, 0.6); backdrop-filter: blur(4px); color: var(--dourado); cursor: pointer; transition: all 0.35s ease;
+    font-family: 'Playfair Display', serif; text-transform: uppercase; box-shadow: 0 0 10px rgba(201, 162, 39, 0.2);
+    display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+  .splash-btn:hover { background: var(--dourado); color: var(--madeira-escura); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(201, 162, 39, 0.5); }
+  .splash-btn.admin { border-color: #a67c52; color: #d4b996; font-size: 0.75rem; padding: 0.6rem 1rem; box-shadow: none; }
+  .splash-btn.admin:hover { background: #a67c52; color: #1a0f08; box-shadow: 0 6px 15px rgba(166, 124, 82, 0.4); }
+  .splash-hint { margin-top: 0.5rem; font-size: 0.75rem; color: #b89a6a; letter-spacing: 1px; opacity: 0.8; font-family: 'Playfair Display', serif; font-style: italic; }
+
+  .glass-panel { background: rgba(43, 26, 14, 0.6); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); border: 1px solid rgba(201, 162, 39, 0.3);
+    border-radius: 12px; padding: 1.5rem; box-shadow: 0 10px 30px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1); position: relative; text-align: left; margin-bottom: 2rem; }
+  .glass-panel::before { content: ''; position: absolute; top: 0; left: 10%; right: 10%; height: 1px; background: linear-gradient(90deg, transparent, rgba(201, 162, 39, 0.5), transparent); }
+
+  .back-btn { background: transparent; border: none; color: var(--dourado); font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 0.3rem;
+    margin-bottom: 0.8rem; padding: 0; font-family: 'Inter', sans-serif; transition: color 0.2s; }
+  .back-btn:hover { color: #e0b840; }
+  .login-title { font-family: 'Playfair Display', serif; color: #fdf8ec; font-size: 1.4rem; margin-bottom: 0.2rem; }
+  .login-subtitle { font-size: 0.8rem; color: #e6d3a8; margin-bottom: 1rem; }
+  .auth-error { background: rgba(192,57,43,0.15); border: 1px solid #c0392b; color: #f5c4c4; padding: 0.6rem 0.8rem; border-radius: 6px; font-size: 0.8rem; margin-bottom: 0.8rem; display: none; }
+  .auth-error.show { display: block; }
+
+  .form-group { margin-bottom: 0.8rem; text-align: left; }
+  .form-group label { display: block; margin-bottom: 0.3rem; font-size: 0.75rem; font-weight: 500; color: #e6d3a8; letter-spacing: 0.5px; }
+  .form-group input { width: 100%; padding: 0.7rem 0.8rem; border: 1px solid rgba(201, 162, 39, 0.4); border-radius: 6px;
+    background: rgba(20, 10, 5, 0.5); color: #fdf8ec; font-family: 'Inter', sans-serif; font-size: 0.85rem; transition: all 0.3s; }
+  .form-group input::placeholder { color: rgba(230, 211, 168, 0.4); }
+  .form-group input:focus { outline: none; border-color: var(--dourado); background: rgba(20, 10, 5, 0.8); box-shadow: 0 0 0 2px rgba(201, 162, 39, 0.2); }
+
+  .btn-auth { width: 100%; padding: 0.8rem; margin-top: 0.5rem; border: none; border-radius: 6px; background: var(--dourado); color: var(--madeira-escura);
+    font-family: 'Inter', sans-serif; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.3s ease; }
+  .btn-auth:hover { background: #e0b840; transform: translateY(-2px); box-shadow: 0 6px 15px rgba(201, 162, 39, 0.4); }
+  .btn-auth:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  .btn-register-link { display: block; width: 100%; padding: 0.8rem; margin-top: 0.8rem; border: 2px solid var(--dourado); border-radius: 6px;
+    background: transparent; color: var(--dourado); font-family: 'Inter', sans-serif; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: all 0.3s ease; text-align: center; }
+  .btn-register-link:hover { background: rgba(201, 162, 39, 0.1); }
+
+  .divider { text-align: center; color: rgba(230, 211, 168, 0.5); margin: 1rem 0; font-size: 0.75rem; position: relative; }
+  .divider::before, .divider::after { content: ''; position: absolute; top: 50%; width: 35%; height: 1px; background: rgba(201, 162, 39, 0.2); }
+  .divider::before { left: 0; } .divider::after { right: 0; }
+  .social-btns { display: flex; gap: 0.6rem; justify-content: center; }
+  .social-btn { flex: 1; padding: 0.6rem; border: 1px solid rgba(201, 162, 39, 0.3); border-radius: 6px; background: rgba(255,255,255,0.05); color: #e6d3a8;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.4rem; font-size: 0.8rem; transition: all 0.2s; font-family: 'Inter', sans-serif; }
+  .social-btn:hover { background: rgba(255,255,255,0.1); border-color: var(--dourado); }
+  .social-btn svg { width: 14px; height: 14px; }
+
+  header { background: linear-gradient(135deg, var(--madeira-escura) 0%, var(--madeira) 100%); color: var(--bege); padding: 1.5rem 2rem;
+    box-shadow: 0 4px 20px var(--sombra); position: sticky; top: 0; z-index: 100; display: none; }
+  .header-content { display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; flex-wrap: wrap; gap: 1rem; }
+  .logo { font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 700; letter-spacing: 1px; display: flex; align-items: center; gap: 0.7rem; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+  .logo .monogram { font-family: 'Great Vibes', cursive; font-weight: 400; color: var(--dourado); font-size: 2.6rem; line-height: 1; padding-right: 0.7rem;
+    border-right: 1.5px solid rgba(201, 162, 39, 0.5); margin-top: -4px; }
+  .logo span { color: var(--dourado); }
+  .user-area { display: flex; align-items: center; gap: 1rem; }
+  .btn { padding: 0.6rem 1.2rem; border: none; border-radius: 8px; font-family: 'Inter', sans-serif; font-weight: 500; cursor: pointer; transition: all 0.3s ease; font-size: 0.9rem; }
+  .btn-gold { background: var(--dourado); color: var(--madeira-escura); }
+  .btn-gold:hover { background: #e0b840; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(201, 162, 39, 0.4); }
+  .btn-outline { background: transparent; color: var(--bege); border: 1px solid var(--bege); }
+  .btn-outline:hover { background: rgba(245, 236, 215, 0.15); }
+  .user-info { display: flex; align-items: center; gap: 0.7rem; font-size: 0.9rem; }
+  .avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--dourado); color: var(--madeira-escura); display: flex; align-items: center; justify-content: center; font-weight: 700; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+  .notification-badge { background: var(--vermelho-alerta); color: #fff; font-size: 0.7rem; padding: 0.15rem 0.45rem; border-radius: 10px; margin-left: 0.3rem; font-weight: 700; animation: pulseNotif 2s infinite; }
+  @keyframes pulseNotif { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+
+  .tabs-container { background: var(--papel); border-bottom: 2px solid var(--caramelo); position: sticky; top: 74px; z-index: 90; box-shadow: 0 4px 10px rgba(0,0,0,0.05); display: none; }
+  .tabs { display: flex; max-width: 1200px; margin: 0 auto; overflow-x: auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { padding: 1rem 1.5rem; cursor: pointer; font-weight: 500; color: var(--madeira); border-bottom: 3px solid transparent; transition: all 0.3s ease; white-space: nowrap; font-size: 0.95rem; display: flex; align-items: center; gap: 0.4rem; }
+  .tab:hover { background: rgba(166, 124, 82, 0.1); color: var(--madeira-escura); }
+  .tab.active { color: var(--madeira-escura); border-bottom-color: var(--dourado); background: var(--creme); font-weight: 600; }
+  .tab.admin-tab { display: none; background: #2b1a0e; color: #f5ecd7; }
+  .tab.admin-tab:hover { background: #4a2c17; }
+  .tab.admin-tab.active { background: #4a2c17; color: #c9a227; border-bottom-color: #c9a227; }
+
+  main { max-width: 1200px; margin: 0 auto; padding: 2.5rem 2rem; display: none; min-height: calc(100vh - 200px); }
+  .tab-content { display: none; animation: fadeIn 0.4s ease; }
+  .tab-content.active { display: block; }
+  .section-title { font-family: 'Playfair Display', serif; font-size: 2rem; color: var(--madeira-escura); margin-bottom: 0.5rem; }
+  .section-subtitle { color: var(--caramelo); margin-bottom: 2rem; font-size: 0.95rem; }
+
+  .filters { display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; align-items: center; }
+  .filters input, .filters select { padding: 0.7rem 1rem; border: 1px solid var(--caramelo); border-radius: 8px; background: var(--creme);
+    font-family: 'Inter', sans-serif; color: var(--texto); font-size: 0.9rem; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+  .filters input:focus, .filters select:focus { outline: none; border-color: var(--dourado); box-shadow: 0 0 0 3px rgba(201, 162, 39, 0.2); }
+  .filters input { flex: 1; min-width: 200px; }
+
+  .category-pills { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 1rem; padding: 1rem; background: var(--papel); border-radius: 12px;
+    border: 1px solid rgba(166, 124, 82, 0.2); box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
+  .category-pill { display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1rem; border-radius: 25px; border: 2px solid transparent;
+    background: var(--creme); cursor: pointer; font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 600; color: var(--madeira-escura);
+    transition: all 0.25s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+  .category-pill:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+  .category-pill .pill-dot { width: 12px; height: 12px; border-radius: 50%; box-shadow: inset 0 -2px 3px rgba(0,0,0,0.3); }
+  .category-pill .pill-count { background: rgba(0,0,0,0.08); padding: 0.1rem 0.5rem; border-radius: 10px; font-size: 0.75rem; margin-left: 0.2rem; }
+  .category-pill.active { border-color: var(--dourado); background: var(--dourado); color: var(--madeira-escura); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(201, 162, 39, 0.4); }
+  .category-pill.active .pill-count { background: rgba(0,0,0,0.15); }
+  .pill-romance .pill-dot { background: #a83030; } .pill-ficcao .pill-dot { background: #2f5a8a; }
+  .pill-suspense .pill-dot { background: #3a5a3a; } .pill-historia .pill-dot { background: #8a6b1a; }
+  .pill-autoajuda .pill-dot { background: #6b2f8a; } .pill-infantil .pill-dot { background: #1a8a8a; }
+  .pill-manga .pill-dot { background: #8a1a5a; }
+
+  .status-legend-big { display: flex; gap: 1rem; flex-wrap: wrap; margin-bottom: 2.5rem; padding: 1.5rem 1.8rem;
+    background: linear-gradient(135deg, #2b1a0e 0%, #3a2211 100%); border-radius: 14px; border: 2px solid var(--dourado);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.08); align-items: center; justify-content: center; }
+  .status-legend-big-title { font-family: 'Playfair Display', serif; color: var(--dourado); font-size: 1rem; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; margin-right: 1rem; padding-right: 1.5rem; border-right: 1px solid rgba(201, 162, 39, 0.4);
+    display: flex; align-items: center; gap: 0.6rem; white-space: nowrap; }
+  .status-legend-item { display: flex; align-items: center; gap: 0.8rem; padding: 0.6rem 1.2rem; background: rgba(255,255,255,0.06);
+    border-radius: 50px; border: 1px solid rgba(255,255,255,0.1); transition: all 0.25s ease; }
+  .status-legend-item:hover { background: rgba(255,255,255,0.12); transform: translateY(-2px); }
+  .status-legend-lamp { width: 28px; height: 28px; border-radius: 50%; position: relative; flex-shrink: 0; border: 2px solid rgba(0,0,0,0.3);
+    box-shadow: inset 0 -3px 6px rgba(0,0,0,0.3), inset 0 3px 6px rgba(255,255,255,0.4); }
+  .status-legend-lamp::before { content: ''; position: absolute; inset: -8px; border-radius: 50%; animation: lampGlow 2s ease-in-out infinite; z-index: -1; }
+  .status-legend-lamp.disponivel { background: radial-gradient(circle at 30% 30%, #a7f3a0 0%, #4ade80 50%, #16a34a 100%); }
+  .status-legend-lamp.disponivel::before { background: radial-gradient(circle, rgba(74, 222, 128, 0.6) 0%, transparent 70%); }
+  .status-legend-lamp.em-uso { background: radial-gradient(circle at 30% 30%, #fca5a5 0%, #f87171 50%, #dc2626 100%); }
+  .status-legend-lamp.em-uso::before { background: radial-gradient(circle, rgba(248, 113, 113, 0.6) 0%, transparent 70%); }
+  .status-legend-lamp.reservado { background: radial-gradient(circle at 30% 30%, #fde68a 0%, #fbbf24 50%, #d97706 100%); }
+  .status-legend-lamp.reservado::before { background: radial-gradient(circle, rgba(251, 191, 36, 0.6) 0%, transparent 70%); }
+  @keyframes lampGlow { 0%, 100% { opacity: 0.6; transform: scale(1); } 50% { opacity: 1; transform: scale(1.15); } }
+  .status-legend-text { color: #fdf8ec; font-size: 0.95rem; font-weight: 600; letter-spacing: 0.5px; }
+  .status-legend-text small { display: block; font-size: 0.7rem; color: #b89a6a; font-weight: 400; letter-spacing: 0; margin-top: 1px; }
+
+  @media (max-width: 768px) {
+    .status-legend-big { flex-direction: column; align-items: stretch; gap: 0.7rem; padding: 1.2rem; }
+    .status-legend-big-title { border-right: none; padding-right: 0; margin-right: 0; justify-content: center; padding-bottom: 0.6rem; border-bottom: 1px solid rgba(201, 162, 39, 0.3); }
+    .status-legend-item { justify-content: center; }
+    .status-legend-lamp { width: 24px; height: 24px; }
+    .status-legend-text { font-size: 0.85rem; }
+  }
+
+  .shelves-wrapper { display: flex; flex-direction: column; gap: 2.5rem; margin-bottom: 2rem; }
+  .shelf-unit { background: linear-gradient(180deg, #3a2211 0%, #2b1a0e 100%); border-radius: 12px; padding: 2rem 1.5rem 0;
+    box-shadow: inset 0 6px 16px rgba(0,0,0,0.6), 0 10px 30px rgba(0,0,0,0.35); position: relative; border: 5px solid #1a0f08; overflow: visible; }
+  .shelf-header { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; margin-bottom: 1.2rem; padding: 0.7rem 1rem;
+    background: linear-gradient(90deg, #c9a227 0%, #a67c52 100%); border-radius: 6px; box-shadow: 0 3px 10px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.3); position: relative; z-index: 3; }
+  .shelf-header-left { display: flex; align-items: center; gap: 0.6rem; }
+  .shelf-header-icon { font-size: 1.3rem; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4)); }
+  .shelf-header-title { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 1.1rem; letter-spacing: 1.5px; text-transform: uppercase; color: #2b1a0e; text-shadow: 0 1px 0 rgba(255,255,255,0.3); }
+  .shelf-header-count { background: rgba(43, 26, 14, 0.85); color: #f8e4b5; padding: 0.25rem 0.8rem; border-radius: 20px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.4); }
+
+  .shelf-books-scroll { display: flex; align-items: flex-end; gap: 6px; min-height: 300px; overflow-x: auto; overflow-y: hidden; padding: 0.5rem 0.5rem 0;
+    scrollbar-width: thin; scrollbar-color: var(--dourado) rgba(0,0,0,0.3); position: relative; z-index: 2; }
+  .shelf-books-scroll::-webkit-scrollbar { height: 8px; }
+  .shelf-books-scroll::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); border-radius: 4px; }
+  .shelf-books-scroll::-webkit-scrollbar-thumb { background: var(--dourado); border-radius: 4px; }
+
+  .shelf-plank { position: relative; height: 24px; background: linear-gradient(180deg, #8a5a2b 0%, #6b4226 40%, #4a2c17 100%); border-radius: 3px;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.7), inset 0 3px 0 rgba(255,200,120,0.3), inset 0 -3px 0 rgba(0,0,0,0.6); margin: 0 -1.5rem; z-index: 1; }
+  .shelf-plank::after { content: ''; position: absolute; bottom: -14px; left: 0; right: 0; height: 14px; background: linear-gradient(180deg, rgba(0,0,0,0.5) 0%, transparent 100%); }
+
+  .shelf-book { position: relative; width: 56px; height: 250px; flex-shrink: 0; border-radius: 3px 6px 6px 3px; cursor: pointer;
+    transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); transform-origin: bottom center; display: flex; align-items: center; justify-content: center;
+    box-shadow: inset -8px 0 14px rgba(0,0,0,0.45), inset 8px 0 10px rgba(255,255,255,0.1), 3px 3px 8px rgba(0,0,0,0.55); margin-bottom: 0; }
+  .shelf-book::before { content: ''; position: absolute; left: 4px; top: 12px; bottom: 12px; width: 3px;
+    background: linear-gradient(180deg, transparent, rgba(201, 162, 39, 0.7), transparent); border-radius: 2px; }
+  .shelf-book::after { content: ''; position: absolute; right: 5px; top: 0; bottom: 0; width: 3px; background: rgba(255,255,255,0.1); border-radius: 2px; }
+  .shelf-book-title { writing-mode: vertical-rl; text-orientation: mixed; font-family: 'Playfair Display', serif; font-weight: 700; font-size: 0.9rem;
+    letter-spacing: 1px; color: rgba(255,255,255,0.95); text-shadow: 1px 2px 4px rgba(0,0,0,0.9), 0 0 2px rgba(0,0,0,0.5); padding: 12px 0;
+    max-height: 230px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; pointer-events: none; position: relative; z-index: 1; }
+
+  .shelf-book.tema-romance { background: linear-gradient(90deg, #7a1f1f 0%, #a83030 50%, #5a1414 100%); }
+  .shelf-book.tema-ficcao { background: linear-gradient(90deg, #1e3a5a 0%, #2f5a8a 50%, #142a44 100%); }
+  .shelf-book.tema-suspense { background: linear-gradient(90deg, #1e2e1e 0%, #3a5a3a 50%, #0e150e 100%); }
+  .shelf-book.tema-historia { background: linear-gradient(90deg, #4a3a0a 0%, #8a6b1a 50%, #2a1f05 100%); }
+  .shelf-book.tema-autoajuda { background: linear-gradient(90deg, #4a1e5a 0%, #6b2f8a 50%, #2a0e3a 100%); }
+  .shelf-book.tema-infantil { background: linear-gradient(90deg, #0e5a5a 0%, #1a8a8a 50%, #052a2a 100%); }
+  .shelf-book.tema-manga { background: linear-gradient(90deg, #5a0e3a 0%, #8a1a5a 50%, #2a0518 100%); }
+  .shelf-book:nth-child(3n) { width: 50px; } .shelf-book:nth-child(5n) { width: 62px; }
+
+  .shelf-book:hover { transform: translateY(-30px) scale(1.1);
+    box-shadow: 0 0 0 3px var(--dourado), 0 0 25px rgba(201, 162, 39, 0.6), inset -8px 0 14px rgba(0,0,0,0.45), inset 8px 0 10px rgba(255,255,255,0.1), 3px 15px 30px rgba(0,0,0,0.7); z-index: 10; }
+
+  .shelf-book-status { position: absolute; top: -6px; left: 50%; transform: translateX(-50%); width: 26px; height: 26px; border-radius: 50%;
+    border: 3px solid rgba(0,0,0,0.5); z-index: 4; box-shadow: inset 0 -3px 6px rgba(0,0,0,0.3), inset 0 3px 6px rgba(255,255,255,0.5), 0 2px 6px rgba(0,0,0,0.4); }
+  .shelf-book-status::after { content: ''; position: absolute; inset: -8px; border-radius: 50%; z-index: -1; animation: bookLampGlow 1.8s ease-in-out infinite; }
+  .shelf-book-status::before { content: ''; position: absolute; top: 3px; left: 5px; width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.7); filter: blur(1px); pointer-events: none; }
+  .shelf-book-status.disponivel { background: radial-gradient(circle at 30% 30%, #a7f3a0 0%, #4ade80 50%, #16a34a 100%); }
+  .shelf-book-status.disponivel::after { background: radial-gradient(circle, rgba(74, 222, 128, 0.8) 0%, transparent 70%); box-shadow: 0 0 15px rgba(74, 222, 128, 0.9); }
+  .shelf-book-status.em-uso { background: radial-gradient(circle at 30% 30%, #fca5a5 0%, #f87171 50%, #dc2626 100%); }
+  .shelf-book-status.em-uso::after { background: radial-gradient(circle, rgba(248, 113, 113, 0.8) 0%, transparent 70%); box-shadow: 0 0 15px rgba(248, 113, 113, 0.9); }
+  .shelf-book-status.reservado { background: radial-gradient(circle at 30% 30%, #fde68a 0%, #fbbf24 50%, #d97706 100%); }
+  .shelf-book-status.reservado::after { background: radial-gradient(circle, rgba(251, 191, 36, 0.8) 0%, transparent 70%); box-shadow: 0 0 15px rgba(251, 191, 36, 0.9); }
+  @keyframes bookLampGlow { 0%, 100% { opacity: 0.5; transform: scale(1); } 50% { opacity: 1; transform: scale(1.2); } }
+
+  .shelf-book-tooltip { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%) translateY(-10px); background: var(--creme);
+    border: 3px solid var(--dourado); border-radius: 12px; padding: 1.2rem 1.4rem; min-width: 260px; max-width: 300px; box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+    opacity: 0; visibility: hidden; transition: all 0.3s; z-index: 100; pointer-events: none; text-align: left; }
+  .shelf-book:hover .shelf-book-tooltip { opacity: 1; visibility: visible; pointer-events: auto; transform: translateX(-50%) translateY(-25px); }
+  .shelf-book-tooltip::after { content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 10px solid transparent; border-top-color: var(--dourado); }
+  .tooltip-title { font-family: 'Playfair Display', serif; font-weight: 700; color: var(--madeira-escura); font-size: 1.2rem; margin-bottom: 0.3rem; line-height: 1.3; }
+  .tooltip-author { font-size: 0.9rem; color: var(--caramelo); font-style: italic; margin-bottom: 0.8rem; }
+  .tooltip-status { display: inline-block; font-size: 0.85rem; padding: 0.3rem 0.8rem; border-radius: 6px; font-weight: 600; margin-bottom: 0.8rem; }
+  .tooltip-status.disponivel { background: #d4e8c5; color: #3d5c1e; }
+  .tooltip-status.reservado { background: #f8e4b5; color: #7a5a10; }
+  .tooltip-status.em-uso { background: #f5c4c4; color: #7a1f1f; }
+  .tooltip-holder { font-size: 0.85rem; color: var(--vermelho-alerta); font-weight: 600; margin-bottom: 0.8rem; padding: 0.5rem; background: rgba(192, 57, 43, 0.08); border-radius: 6px; border-left: 3px solid var(--vermelho-alerta); }
+  .tooltip-action-btn { width: 100%; padding: 0.7rem; border: none; border-radius: 8px; font-family: 'Inter', sans-serif; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+  .tooltip-action-btn.borrow { background: var(--verde-oliva); color: #fff; }
+  .tooltip-action-btn.borrow:hover { background: #5a6940; transform: translateY(-2px); }
+  .tooltip-action-btn.return { background: #7a1f1f; color: #fff; }
+  .tooltip-action-btn.return:hover { background: #5c1717; transform: translateY(-2px); }
+  .tooltip-action-btn.disabled { background: #ccc; color: #666; cursor: not-allowed; }
+
+  .rating-scale { display: flex; gap: 0.3rem; flex-wrap: wrap; margin-top: 0.5rem; }
+  .rating-option { padding: 0.3rem 0.8rem; border-radius: 20px; border: 1px solid var(--caramelo); background: transparent; cursor: pointer;
+    font-family: 'Inter', sans-serif; font-size: 0.75rem; font-weight: 500; transition: all 0.2s; color: var(--texto); }
+  .rating-option:hover { background: var(--papel); }
+  .rating-option.selected { background: var(--dourado); border-color: var(--dourado); color: var(--madeira-escura); font-weight: 700; }
+
+  .form-card { background: var(--creme); padding: 2.5rem; border-radius: 12px; box-shadow: 0 8px 30px var(--sombra); border: 1px solid rgba(166, 124, 82, 0.2); max-width: 600px; margin-bottom: 2rem; }
+  .form-group-2 { margin-bottom: 1.2rem; }
+  .form-group-2 label { display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--madeira-escura); font-size: 0.9rem; }
+  .form-group-2 input, .form-group-2 textarea, .form-group-2 select { width: 100%; padding: 0.8rem 1rem; border: 1px solid var(--caramelo); border-radius: 8px;
+    background: var(--creme); font-family: 'Inter', sans-serif; color: var(--texto); font-size: 0.9rem; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); }
+  .form-group-2 input:focus, .form-group-2 textarea:focus, .form-group-2 select:focus { outline: none; border-color: var(--dourado); box-shadow: 0 0 0 3px rgba(201, 162, 39, 0.2); }
+  .form-group-2 textarea { resize: vertical; min-height: 100px; }
+
+  .list-item { background: var(--creme); padding: 1.5rem; border-radius: 10px; box-shadow: 0 4px 15px var(--sombra); margin-bottom: 1rem;
+    border-left: 5px solid var(--verde-oliva); display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; }
+  .list-item-content h4 { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: var(--madeira-escura); margin-bottom: 0.3rem; }
+  .list-item-content p { font-size: 0.9rem; color: var(--caramelo); line-height: 1.4; }
+  .list-item-meta { font-size: 0.8rem; color: var(--caramelo); text-align: right; white-space: nowrap; }
+  .like-btn { background: transparent; border: 1px solid var(--caramelo); color: var(--madeira); padding: 0.4rem 0.8rem; border-radius: 20px;
+    cursor: pointer; font-size: 0.8rem; transition: all 0.2s; margin-top: 0.5rem; }
+  .like-btn:hover { background: var(--papel); }
+  .like-btn.liked { background: var(--dourado); color: var(--madeira-escura); border-color: var(--dourado); }
+
+  .admin-panel { background: #2b1a0e; color: var(--bege); padding: 2.5rem; border-radius: 12px; box-shadow: 0 15px 40px rgba(0,0,0,0.6); border: 1px solid rgba(201, 162, 39, 0.3); margin-bottom: 2rem; }
+  .admin-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(201, 162, 39, 0.3); padding-bottom: 1.5rem; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
+  .admin-title { font-family: 'Playfair Display', serif; font-size: 2rem; color: var(--dourado); }
+  .admin-subtitle { font-size: 0.95rem; color: #b89a6a; }
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+  .stat-card { background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 8px; border-left: 4px solid var(--dourado); }
+  .stat-card h3 { font-size: 0.85rem; color: #b89a6a; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem; }
+  .stat-card .number { font-size: 2.8rem; font-family: 'Playfair Display', serif; color: #f5ecd7; font-weight: 700; line-height: 1; }
+  .stat-card.alerta { border-left-color: var(--vermelho-alerta); }
+  .stat-card.alerta .number { color: #f5c4c4; }
+
+  .admin-inner-tabs { display: flex; gap: 0.4rem; margin-bottom: 2rem; padding: 0.5rem; background: rgba(0,0,0,0.3); border-radius: 12px; flex-wrap: wrap; border: 1px solid rgba(201, 162, 39, 0.2); }
+  .admin-inner-tab { flex: 1; min-width: 160px; padding: 0.9rem 1.3rem; border-radius: 8px; background: transparent; border: 2px solid transparent;
+    color: #b89a6a; font-family: 'Inter', sans-serif; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.25s ease;
+    display: flex; align-items: center; justify-content: center; gap: 0.5rem; position: relative; }
+  .admin-inner-tab:hover { background: rgba(201, 162, 39, 0.1); color: var(--dourado); }
+  .admin-inner-tab.active { background: linear-gradient(135deg, #c9a227 0%, #a67c52 100%); color: #2b1a0e; border-color: var(--dourado); box-shadow: 0 4px 12px rgba(201, 162, 39, 0.4); }
+  .admin-inner-tab .inner-tab-badge { background: rgba(0,0,0,0.25); color: inherit; padding: 0.15rem 0.55rem; border-radius: 10px; font-size: 0.75rem; font-weight: 700; }
+  .admin-inner-tab.active .inner-tab-badge { background: rgba(0,0,0,0.3); color: #fdf8ec; }
+  .admin-inner-tab .inner-tab-badge.alert { background: var(--vermelho-alerta); color: #fff; animation: pulseNotif 2s infinite; }
+  .admin-inner-content { display: none; animation: fadeIn 0.35s ease; }
+  .admin-inner-content.active { display: block; }
+  .admin-section-title { font-family: 'Playfair Display', serif; font-size: 1.5rem; color: #f8e4b5; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+  .admin-section-title.acervo-color { color: #c9a227; }
+
+  .admin-table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.9rem; }
+  .admin-table th { text-align: left; padding: 1rem 0.8rem; color: #b89a6a; border-bottom: 2px solid rgba(201, 162, 39, 0.3); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .admin-table td { padding: 1rem 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.05); color: #f5ecd7; vertical-align: middle; }
+  .admin-table tr:hover { background: rgba(255,255,255,0.03); }
+  .badge-status { padding: 0.3rem 0.8rem; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+  .badge-disponivel { background: #3d5c1e; color: #d4e8c5; }
+  .badge-em-uso { background: #7a1f1f; color: #f5c4c4; }
+  .badge-reservado { background: #7a5a10; color: #f8e4b5; }
+
+  .status-select { background: #3b2a1a; color: #f5ecd7; border: 1px solid rgba(201, 162, 39, 0.4); padding: 0.4rem 0.6rem; border-radius: 6px;
+    font-family: 'Inter', sans-serif; font-size: 0.8rem; cursor: pointer; width: 100%; max-width: 140px; transition: all 0.2s; }
+  .status-select:hover { border-color: var(--dourado); }
+  .status-select:focus { outline: none; border-color: var(--dourado); box-shadow: 0 0 0 2px rgba(201, 162, 39, 0.2); }
+
+  .admin-filters { display: flex; gap: 0.6rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .admin-filter-btn { padding: 0.6rem 1.3rem; border-radius: 25px; border: 1px solid rgba(201, 162, 39, 0.4); background: rgba(255,255,255,0.05);
+    color: #b89a6a; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 600; transition: all 0.2s;
+    display: flex; align-items: center; gap: 0.4rem; }
+  .admin-filter-btn:hover { background: rgba(201, 162, 39, 0.15); color: var(--dourado); }
+  .admin-filter-btn.active { background: var(--dourado); color: var(--madeira-escura); border-color: var(--dourado); }
+  .admin-filter-btn .badge-count { background: rgba(0,0,0,0.2); padding: 0.1rem 0.5rem; border-radius: 10px; font-size: 0.75rem; margin-left: 0.2rem; }
+  .admin-filter-btn.active .badge-count { background: rgba(0,0,0,0.25); }
+
+  .donation-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(201, 162, 39, 0.2); border-left: 4px solid #f8e4b5; padding: 1.5rem;
+    border-radius: 8px; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+  .donation-info h4 { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: #fdf8ec; margin-bottom: 0.2rem; }
+  .donation-info p { font-size: 0.85rem; color: #b89a6a; }
+  .donation-actions { display: flex; gap: 0.5rem; }
+  .btn-accept { background: #3d5c1e; color: #d4e8c5; padding: 0.5rem 1rem; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.2s; }
+  .btn-accept:hover { background: #4a6e25; }
+  .btn-reject { background: transparent; border: 1px solid #7a1f1f; color: #f5c4c4; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; transition: 0.2s; }
+  .btn-reject:hover { background: #7a1f1f; }
+
+  .loan-filters { display: flex; gap: 0.6rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .loan-filter-btn { padding: 0.6rem 1.2rem; border-radius: 20px; border: 1px solid rgba(201, 162, 39, 0.4); background: rgba(255,255,255,0.05);
+    color: #b89a6a; cursor: pointer; font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 600; transition: all 0.2s; }
+  .loan-filter-btn:hover { background: rgba(201, 162, 39, 0.15); color: var(--dourado); }
+  .loan-filter-btn.active { background: var(--dourado); color: var(--madeira-escura); border-color: var(--dourado); }
+
+  .loan-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(201, 162, 39, 0.2); border-left: 4px solid #f8e4b5; padding: 1.5rem;
+    border-radius: 8px; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; }
+  .loan-card.overdue { border-left-color: var(--vermelho-alerta); background: rgba(192, 57, 43, 0.1); animation: flashAlerta 2s infinite; }
+  @keyframes flashAlerta { 0%, 100% { background: rgba(192, 57, 43, 0.1); } 50% { background: rgba(192, 57, 43, 0.2); } }
+  .loan-info h4 { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: #fdf8ec; margin-bottom: 0.4rem; }
+  .loan-info p { font-size: 0.85rem; color: #b89a6a; margin-bottom: 0.2rem; }
+  .loan-info .user-tag { display: inline-block; background: var(--dourado); color: var(--madeira-escura); padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.8rem; font-weight: 700; margin-top: 0.5rem; }
+  .loan-dates { background: rgba(0,0,0,0.3); padding: 0.8rem 1rem; border-radius: 6px; font-size: 0.85rem; color: #f5ecd7; line-height: 1.8; min-width: 220px; }
+  .loan-dates strong { color: var(--dourado); }
+  .loan-dates .overdue-text { color: #f5c4c4; font-weight: 700; }
+
+  .admin-rating-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(201, 162, 39, 0.2); border-left: 4px solid var(--dourado);
+    padding: 1.2rem; border-radius: 8px; margin-bottom: 0.8rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+  .admin-rating-info h4 { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: #fdf8ec; margin-bottom: 0.2rem; }
+  .admin-rating-info p { font-size: 0.85rem; color: #b89a6a; }
+  .admin-rating-note { padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+  .note-otimo { background: #3d5c1e; color: #d4e8c5; }
+  .note-bom { background: #5a6b3a; color: #e8e8c5; }
+  .note-mediano { background: #7a5a10; color: #f8e4b5; }
+  .note-razoavel { background: #7a4f1f; color: #f8d4b5; }
+  .note-ruim { background: #7a1f1f; color: #f5c4c4; }
+
+  .history-item { background: var(--creme); padding: 1.5rem; border-radius: 10px; box-shadow: 0 4px 15px var(--sombra); margin-bottom: 1rem;
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap; border-left: 5px solid var(--dourado); }
+  .history-item.returned { border-left-color: var(--verde-oliva); opacity: 0.9; }
+  .history-item.overdue { border-left-color: var(--vermelho-alerta); background: linear-gradient(to right, rgba(192, 57, 43, 0.05), var(--creme) 20%); }
+  .history-info h4 { font-family: 'Playfair Display', serif; font-size: 1.2rem; color: var(--madeira-escura); margin-bottom: 0.2rem; }
+  .history-info p { font-size: 0.85rem; color: var(--caramelo); }
+  .history-badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin-top: 0.4rem; }
+  .badge-em-posse { background: #f8e4b5; color: #7a5a10; }
+  .badge-devolvido { background: #d4e8c5; color: #3d5c1e; }
+  .badge-atraso-dias { background: var(--vermelho-alerta); color: #fff; }
+  .btn-return-history { background: #7a1f1f; color: #fff; border: none; padding: 0.5rem 1.2rem; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s; font-size: 0.85rem; margin-top: 0.5rem; }
+  .btn-return-history:hover { background: #5c1717; }
+  .history-dates-box { background: var(--papel); padding: 0.5rem 0.8rem; border-radius: 6px; font-size: 0.8rem; color: var(--madeira-escura); margin-top: 0.5rem; line-height: 1.6; }
+  .history-dates-box strong { color: var(--madeira-escura); }
+  .history-rating-area { margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed rgba(166, 124, 82, 0.3); width: 100%; }
+  .history-rating-label { font-size: 0.8rem; color: var(--caramelo); font-weight: 600; margin-bottom: 0.3rem; display: block; }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(59, 42, 26, 0.85); backdrop-filter: blur(5px); z-index: 200; align-items: center; justify-content: center; padding: 1rem; }
+  .modal-overlay.active { display: flex; }
+  .modal { background: var(--creme); border-radius: 16px; padding: 2.5rem; max-width: 450px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.5); position: relative; animation: modalIn 0.3s ease; }
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+  .modal h2 { font-family: 'Playfair Display', serif; color: var(--madeira-escura); text-align: center; margin-bottom: 0.3rem; font-size: 1.8rem; }
+  .modal-subtitle { text-align: center; color: var(--caramelo); font-size: 0.9rem; margin-bottom: 1.5rem; }
+  .close-modal { position: absolute; top: 1rem; right: 1rem; background: transparent; border: none; font-size: 1.5rem; cursor: pointer; color: var(--caramelo); transition: color 0.2s; }
+  .close-modal:hover { color: var(--madeira-escura); }
+
+  .toast { position: fixed; bottom: 2rem; left: 50%; transform: translateX(-50%) translateY(100px); background: var(--madeira-escura); color: var(--bege);
+    padding: 1rem 2rem; border-radius: 50px; box-shadow: 0 10px 30px rgba(0,0,0,0.4); opacity: 0; transition: all 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+    z-index: 300; font-size: 0.95rem; font-weight: 500; border: 1px solid rgba(201, 162, 39, 0.3); max-width: 90%; text-align: center; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.alerta { background: var(--vermelho-alerta); border-color: #fff; }
+
+  .loading-overlay { position: fixed; inset: 0; background: rgba(26, 15, 8, 0.85); z-index: 500; display: none; align-items: center; justify-content: center; }
+  .loading-overlay.active { display: flex; }
+  .spinner { width: 50px; height: 50px; border: 4px solid rgba(201, 162, 39, 0.3); border-top-color: var(--dourado); border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  footer { text-align: center; padding: 3rem 2rem; color: var(--caramelo); font-size: 0.9rem; border-top: 1px solid rgba(166, 124, 82, 0.2); margin-top: 4rem; display: none; font-style: italic; }
+
+  @media (max-width: 1024px) {
+    .shelf-book { width: 50px; height: 220px; } .shelf-book-title { font-size: 0.8rem; } .shelf-book-status { width: 22px; height: 22px; }
+  }
+  @media (max-width: 768px) {
+    .header-content { flex-direction: column; text-align: center; }
+    .logo { font-size: 1.4rem; } .logo .monogram { font-size: 2.2rem; }
+    main { padding: 1.5rem 1rem; } .section-title { font-size: 1.6rem; }
+    .tab { padding: 0.8rem 1rem; font-size: 0.85rem; }
+    .tabs-container { top: 110px; }
+    .modal { padding: 1.8rem; }
+    .splash-logo { width: 80px; height: 80px; } .splash-logo span { font-size: 2.6rem; transform: translateY(4px); }
+    .book-3d { width: 40px; height: 60px; }
+    .frame { inset: 10px; } .corner { width: 20px; height: 20px; }
+    .corner.tl { top: 8px; left: 8px; } .corner.tr { top: 8px; right: 8px; }
+    .corner.bl { bottom: 8px; left: 8px; } .corner.br { bottom: 8px; right: 8px; }
+    .splash-actions { flex-direction: column; gap: 0.6rem; }
+    .admin-panel { padding: 1.5rem; } .glass-panel { padding: 1.2rem; }
+    .admin-filters { flex-direction: column; } .admin-filter-btn { width: 100%; justify-content: center; }
+    .shelf-unit { padding: 1.5rem 1rem 0; border-width: 4px; }
+    .shelf-book { width: 46px; height: 190px; } .shelf-book-title { font-size: 0.7rem; }
+    .shelf-books-scroll { min-height: 260px; }
+    .shelf-book-status { width: 20px; height: 20px; top: -5px; }
+    .shelf-book-status::before { width: 6px; height: 6px; top: 2px; left: 4px; }
+    .shelf-book:hover { transform: translateY(-20px) scale(1.08); }
+    .shelf-book-tooltip { min-width: 220px; padding: 1rem; }
+    .tooltip-title { font-size: 1rem; }
+    .shelf-header { flex-direction: column; text-align: center; gap: 0.4rem; }
+    .shelf-header-title { font-size: 0.95rem; }
+    .category-pills { gap: 0.4rem; } .category-pill { font-size: 0.75rem; padding: 0.4rem 0.8rem; }
+    .shelves-wrapper { gap: 1.5rem; }
+    .admin-inner-tabs { flex-direction: column; }
+    .admin-inner-tab { width: 100%; min-width: unset; padding: 0.75rem 1rem; font-size: 0.85rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="splash" id="splash">
+  <div class="frame"></div>
+  <div class="corner tl"></div>
+  <div class="corner tr"></div>
+  <div class="corner bl"></div>
+  <div class="corner br"></div>
+  <div class="shelf-bg">
+    <div class="shelf-row-bg"><div class="shelf-books-bg"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div></div>
+    <div class="shelf-row-bg"><div class="shelf-books-bg"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div></div>
+    <div class="shelf-row-bg"><div class="shelf-books-bg"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div></div>
+  </div>
+  <div class="falling-books">
+    <div class="book-3d book-red"><div class="cover"><div class="spine"></div><div class="lines"><span></span><span></span></div></div><div class="pages"></div></div>
+    <div class="book-3d book-green"><div class="cover"><div class="spine"></div><div class="lines"><span></span><span></span></div></div><div class="pages"></div></div>
+    <div class="book-3d book-blue"><div class="cover"><div class="spine"></div><div class="lines"><span></span><span></span></div></div><div class="pages"></div></div>
+    <div class="book-3d book-brown"><div class="cover"><div class="spine"></div><div class="lines"><span></span><span></span></div></div><div class="pages"></div></div>
+    <div class="book-3d book-gold"><div class="cover"><div class="spine"></div><div class="lines"><span></span><span></span></div></div><div class="pages"></div></div>
+    <div class="book-3d book-purple"><div class="cover"><div class="spine"></div><div class="lines"><span></span><span></span></div></div><div class="pages"></div></div>
+    <div class="book-3d book-teal"><div class="cover"><div class="spine"></div><div class="lines"><span></span><span></span></div></div><div class="pages"></div></div>
+    <div class="book-3d book-red"><div class="cover"><div class="spine"></div><div class="lines"><span></span><span></span></div></div><div class="pages"></div></div>
+    <div class="book-3d book-blue"><div class="cover"><div class="spine"></div><div class="lines"><span></span><span></span></div></div><div class="pages"></div></div>
+    <div class="book-3d book-green"><div class="cover"><div class="spine"></div><div class="lines"><span></span><span></span></div></div><div class="pages"></div></div>
+  </div>
+  <div class="splash-content">
+    <div class="splash-logo"><span>BA</span></div>
+    <h1 class="splash-title">Biblioteca <span>Aconchego</span></h1>
+    <p class="splash-subtitle">Um refúgio para leitores</p>
+
+    <div class="screen active" id="screen-select">
+      <div class="splash-actions">
+        <button class="splash-btn" onclick="goToLogin('leitor')">
+          <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+          Área do Leitor
+        </button>
+        <button class="splash-btn admin" onclick="goToLogin('admin')">
+          <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l-10 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12v-6l-9-5zm0 11h-3v-3h3v3zm0-5h-3v-3h3v3zm3 5h-3v-3h3v3zm0-5h-3v-3h3v3z"/></svg>
+          Bibliotecário
+        </button>
+      </div>
+      <p class="splash-hint">✦ Acesso restrito a leitores cadastrados ✦</p>
+    </div>
+
+    <div class="screen" id="screen-login-leitor">
+      <div class="glass-panel">
+        <button class="back-btn" onclick="goBackToSelect()">
+          <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+          Voltar
+        </button>
+        <h2 class="login-title">Bem-vindo(a)!</h2>
+        <p class="login-subtitle">Entre para acessar o acervo</p>
+        <div class="auth-error" id="loginError"></div>
+        <div class="form-group"><label>E-mail</label><input type="email" id="loginEmail" placeholder="seu@email.com" autocomplete="email"></div>
+        <div class="form-group"><label>Senha</label><input type="password" id="loginPassword" placeholder="Sua senha" autocomplete="current-password"></div>
+        <button class="btn-auth" id="btnLogin" onclick="doLogin()">Entrar como Leitor</button>
+        <button class="btn-register-link" onclick="showRegister()">Cadastrar Nova Conta</button>
+      </div>
+    </div>
+
+    <div class="screen" id="screen-register-leitor">
+      <div class="glass-panel">
+        <button class="back-btn" onclick="goToLogin('leitor')">
+          <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+          Voltar
+        </button>
+        <h2 class="login-title">Criar Conta</h2>
+        <p class="login-subtitle">Junte-se à nossa comunidade</p>
+        <div class="auth-error" id="registerError"></div>
+        <div class="form-group"><label>Nome completo</label><input type="text" id="regName" placeholder="Seu nome"></div>
+        <div class="form-group"><label>E-mail</label><input type="email" id="regEmail" placeholder="seu@email.com"></div>
+        <div class="form-group"><label>Senha</label><input type="password" id="regPassword" placeholder="Mínimo 6 caracteres"></div>
+        <button class="btn-auth" id="btnRegister" onclick="doRegister()">Criar Conta</button>
+      </div>
+    </div>
+
+    <div class="screen" id="screen-login-admin">
+      <div class="glass-panel" style="border-color: rgba(166, 124, 82, 0.5);">
+        <button class="back-btn" onclick="goBackToSelect()">
+          <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+          Voltar
+        </button>
+        <h2 class="login-title" style="color: #d4b996;">Acesso Restrito</h2>
+        <p class="login-subtitle">Área exclusiva para bibliotecários</p>
+        <div class="auth-error" id="adminError"></div>
+        <div class="form-group"><label>E-mail do Bibliotecário</label><input type="email" id="adminEmail" placeholder="admin@biblioteca.com"></div>
+        <div class="form-group"><label>Senha de Acesso</label><input type="password" id="adminPassword" placeholder="Sua senha"></div>
+        <button class="btn-auth" id="btnAdminLogin" onclick="doAdminLogin()" style="background: #a67c52; color: #fff;">Acessar Painel</button>
+        <p style="font-size: 0.7rem; margin-top: 1rem; color: #999; text-align: center;">
+          Use uma conta com <code>role = 'admin'</code> no Supabase.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<header id="mainHeader">
+  <div class="header-content">
+    <div class="logo"><span class="monogram">BA</span>Biblioteca <span>Aconchego</span></div>
+    <div class="user-area">
+      <div class="user-info" id="userInfo">
+        <div class="avatar" id="avatar">U</div>
+        <span id="userName">Usuário</span>
+        <span id="userRole" style="font-size:0.75rem; background:var(--papel); padding:0.2rem 0.5rem; border-radius:4px; color:var(--madeira-escura); font-weight:600;">Leitor</span>
+        <button class="btn btn-outline" id="logoutBtn" style="padding:0.4rem 0.8rem;font-size:0.8rem; border-color:var(--caramelo); color:var(--caramelo);">Sair</button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="tabs-container" id="mainTabsContainer">
+  <div class="tabs" id="mainTabs">
+    <div class="tab active" data-tab="acervo">📖 Acervo</div>
+    <div class="tab" data-tab="mangas">🇯🇵 Mangás</div>
+    <div class="tab" data-tab="recomendacoes">💡 Recomendações</div>
+    <div class="tab" data-tab="doacoes" id="tabDoacoes">🎁 Doações</div>
+    <div class="tab" data-tab="historico" id="tabHistorico">📜 Meu Histórico</div>
+    <div class="tab admin-tab" data-tab="admin" id="adminTab">📋 Painel do Bibliotecário</div>
+  </div>
+</div>
+
+<main id="mainContent">
+  <section class="tab-content active" id="acervo">
+    <h2 class="section-title">Acervo da Biblioteca</h2>
+    <p class="section-subtitle">Cada categoria tem sua própria estante — passe o mouse para ver detalhes.</p>
+    <div class="filters"><input type="text" id="searchBook" placeholder="🔍 Buscar por título ou autor..."></div>
+    <div class="category-pills" id="categoryPills"></div>
+    <div class="status-legend-big">
+      <div class="status-legend-big-title"><span>💡</span> Significado das luzes</div>
+      <div class="status-legend-item"><span class="status-legend-lamp disponivel"></span><span class="status-legend-text">Disponível <small>Pode ser emprestado</small></span></div>
+      <div class="status-legend-item"><span class="status-legend-lamp em-uso"></span><span class="status-legend-text">Em Uso <small>Alguém está com ele</small></span></div>
+      <div class="status-legend-item"><span class="status-legend-lamp reservado"></span><span class="status-legend-text">Reservado <small>Já tem dono marcado</small></span></div>
+    </div>
+    <div class="shelves-wrapper" id="booksShelves"></div>
+  </section>
+
+  <section class="tab-content" id="mangas">
+    <h2 class="section-title">Nossa Coleção de Mangás</h2>
+    <p class="section-subtitle">Explore mangás na estante — passe o mouse para ver detalhes.</p>
+    <div class="filters"><input type="text" id="searchManga" placeholder="🔍 Buscar mangá por título ou autor..."></div>
+    <div class="status-legend-big">
+      <div class="status-legend-big-title"><span>💡</span> Significado das luzes</div>
+      <div class="status-legend-item"><span class="status-legend-lamp disponivel"></span><span class="status-legend-text">Disponível</span></div>
+      <div class="status-legend-item"><span class="status-legend-lamp em-uso"></span><span class="status-legend-text">Em Uso</span></div>
+      <div class="status-legend-item"><span class="status-legend-lamp reservado"></span><span class="status-legend-text">Reservado</span></div>
+    </div>
+    <div class="shelves-wrapper" id="mangasShelves"></div>
+  </section>
+
+  <section class="tab-content" id="recomendacoes">
+    <h2 class="section-title">Recomendações de Livros e Mangás</h2>
+    <p class="section-subtitle">Sugira um título que você gostaria de ver por aqui!</p>
+    <div class="form-card">
+      <div class="form-group-2"><label>Título *</label><input type="text" id="recTitle" placeholder="Ex.: O Hobbit ou One Piece"></div>
+      <div class="form-group-2"><label>Autor</label><input type="text" id="recAuthor" placeholder="Ex.: J.R.R. Tolkien"></div>
+      <div class="form-group-2"><label>Por que você recomenda?</label><textarea id="recReason" placeholder="Conte um pouco..."></textarea></div>
+      <button class="btn btn-gold" style="width:100%;" onclick="addRecommendation()">💡 Enviar Recomendação</button>
+    </div>
+    <h3 class="section-title" style="font-size:1.4rem;margin-top:3rem; border-bottom:2px solid var(--papel); padding-bottom:0.5rem;">Recomendações da Comunidade</h3>
+    <div id="recommendationsList" style="margin-top:1.5rem;"></div>
+  </section>
+
+  <section class="tab-content" id="doacoes">
+    <h2 class="section-title">Doação de Livros e Mangás</h2>
+    <p class="section-subtitle">Doe itens que você não usa mais!</p>
+    <div class="form-card">
+      <div class="form-group-2"><label>Título *</label><input type="text" id="donTitle" placeholder="Ex.: Dom Casmurro"></div>
+      <div class="form-group-2"><label>Autor</label><input type="text" id="donAuthor" placeholder="Ex.: Machado de Assis"></div>
+      <div class="form-group-2"><label>Tema/Categoria</label><select id="donTheme">
+        <option value="Romance">Romance</option><option value="Ficção">Ficção</option><option value="Suspense">Suspense</option>
+        <option value="História">História</option><option value="Autoajuda">Autoajuda</option><option value="Infantil">Infantil</option><option value="Mangá">Mangá</option>
+      </select></div>
+      <div class="form-group-2"><label>Estado de Conservação</label><select id="donCondition">
+        <option value="Ótimo">Ótimo</option><option value="Bom">Bom</option><option value="Razoável">Razoável</option>
+      </select></div>
+      <div class="form-group-2"><label>Observações</label><textarea id="donNotes" placeholder="Ex.: Edição de bolso..."></textarea></div>
+      <button class="btn btn-gold" style="width:100%;" onclick="addDonation()">🎁 Registrar Doação</button>
+    </div>
+    <h3 class="section-title" style="font-size:1.4rem;margin-top:3rem; border-bottom:2px solid var(--papel); padding-bottom:0.5rem;">Minhas Doações</h3>
+    <div id="donationsList" style="margin-top:1.5rem;"></div>
+  </section>
+
+  <section class="tab-content" id="historico">
+    <h2 class="section-title">Meu Histórico de Leituras</h2>
+    <p class="section-subtitle">Acompanhe seus empréstimos, devoluções e avaliações.</p>
+    <div id="historyList"></div>
+  </section>
+
+  <section class="tab-content" id="admin">
+    <div class="admin-panel">
+      <div class="admin-header">
+        <div><h2 class="admin-title">Painel do Bibliotecário</h2><p class="admin-subtitle">Gerencie o acervo, empréstimos e avaliações.</p></div>
+        <button class="btn btn-gold" onclick="openAddBookModal()">+ Cadastrar Novo Item</button>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card"><h3>Total no Acervo</h3><div class="number" id="totalBooks">0</div></div>
+        <div class="stat-card"><h3>Disponíveis</h3><div class="number" style="color:#d4e8c5;" id="totalAvailable">0</div></div>
+        <div class="stat-card"><h3>Emprestados</h3><div class="number" style="color:#f5c4c4;" id="totalInUse">0</div></div>
+        <div class="stat-card alerta"><h3>Atrasados 🚨</h3><div class="number" id="totalOverdue">0</div></div>
+        <div class="stat-card"><h3>Doações Pendentes</h3><div class="number" style="color:#f8e4b5;" id="totalDonations">0</div></div>
+      </div>
+      <div class="admin-inner-tabs" id="adminInnerTabs">
+        <button class="admin-inner-tab active" data-inner-tab="acervo" onclick="switchAdminTab('acervo', this)">📚 Acervo</button>
+        <button class="admin-inner-tab" data-inner-tab="emprestimos" onclick="switchAdminTab('emprestimos', this)">⏰ Empréstimos Ativos <span class="inner-tab-badge alert" id="loansBadge" style="display:none;">0</span></button>
+        <button class="admin-inner-tab" data-inner-tab="doacoes" onclick="switchAdminTab('doacoes', this)">🎁 Doações <span class="inner-tab-badge" id="donationsBadge" style="display:none;">0</span></button>
+        <button class="admin-inner-tab" data-inner-tab="avaliacoes" onclick="switchAdminTab('avaliacoes', this)">⭐ Avaliações</button>
+      </div>
+      <div class="admin-inner-content active" id="admin-inner-acervo">
+        <h3 class="admin-section-title acervo-color">Status do Acervo</h3>
+        <div class="admin-filters">
+          <button class="admin-filter-btn active" data-status="todos" onclick="filterAdminBooks('todos', this)">📚 Todos <span class="badge-count" id="adminCountTodos">0</span></button>
+          <button class="admin-filter-btn" data-status="disponivel" onclick="filterAdminBooks('disponivel', this)">✅ Disponível <span class="badge-count" id="adminCountDisponivel">0</span></button>
+          <button class="admin-filter-btn" data-status="em-uso" onclick="filterAdminBooks('em-uso', this)">📖 Em Uso <span class="badge-count" id="adminCountEmUso">0</span></button>
+          <button class="admin-filter-btn" data-status="reservado" onclick="filterAdminBooks('reservado', this)">🔒 Reservado <span class="badge-count" id="adminCountReservado">0</span></button>
+        </div>
+        <div style="overflow-x: auto;">
+          <table class="admin-table">
+            <thead><tr><th>ID</th><th>Título</th><th>Autor</th><th>Tema</th><th>Status</th><th>Quem está com</th><th>Ação</th><th>Alterar</th></tr></thead>
+            <tbody id="adminTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="admin-inner-content" id="admin-inner-emprestimos">
+        <h3 class="admin-section-title">Empréstimos Ativos</h3>
+        <div class="loan-filters">
+          <button class="loan-filter-btn active" data-filter="todos" onclick="filterLoans('todos', this)">📋 Todos</button>
+          <button class="loan-filter-btn" data-filter="em-dia" onclick="filterLoans('em-dia', this)">✅ Em dia</button>
+          <button class="loan-filter-btn" data-filter="atrasados" onclick="filterLoans('atrasados', this)">🚨 Atrasados</button>
+        </div>
+        <div id="adminLoansList"></div>
+      </div>
+      <div class="admin-inner-content" id="admin-inner-doacoes">
+        <h3 class="admin-section-title">Doações Aguardando Avaliação</h3>
+        <div id="adminDonationsList"></div>
+      </div>
+      <div class="admin-inner-content" id="admin-inner-avaliacoes">
+        <h3 class="admin-section-title acervo-color">⭐ Avaliações dos Leitores</h3>
+        <div id="adminRatingsList"></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer id="mainFooter">📚 Biblioteca Aconchego — Feito com carinho para leitores apaixonados</footer>
+
+<div class="modal-overlay" id="addBookModal">
+  <div class="modal">
+    <button class="close-modal" onclick="closeAddBookModal()">×</button>
+    <h2>Novo Item</h2>
+    <p class="modal-subtitle">Cadastre um novo livro ou mangá no acervo</p>
+    <div class="form-group-2"><label>Título *</label><input type="text" id="newBookTitle" placeholder="Nome do livro/mangá"></div>
+    <div class="form-group-2"><label>Autor</label><input type="text" id="newBookAuthor" placeholder="Nome do autor"></div>
+    <div class="form-group-2"><label>Tema</label><select id="newBookTheme">
+      <option value="Romance">Romance</option><option value="Ficção">Ficção</option><option value="Suspense">Suspense</option>
+      <option value="História">História</option><option value="Autoajuda">Autoajuda</option><option value="Infantil">Infantil</option><option value="Mangá">Mangá</option>
+    </select></div>
+    <button class="btn btn-gold" style="width:100%;" onclick="doAddBook()">Salvar no Acervo</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="loading-overlay" id="loading"><div class="spinner"></div></div>
+
+<script>
+// ============================================================
+// ⚠️ TROQUE AQUI COM SUAS CREDENCIAIS DO SUPABASE
+// ============================================================
+const SUPABASE_URL = 'https://nqelfmslmierqdjbkmur.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_2p6Ji_LWo9Hb6S0_e_54Xw_Snf-4sfg';
+
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ---------- ESTADO ----------
+let currentUser = null;
+let currentProfile = null;
+let books = [];
+let history = [];
+let recommendations = [];
+let donations = [];
+let myLikes = new Set();
+let currentCategoryFilter = null;
+let adminBookFilter = 'todos';
+let currentLoanFilter = 'todos';
+
+// ---------- HELPERS ----------
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
+}
+function goToLogin(role) {
+  if (role === 'leitor') showScreen('screen-login-leitor');
+  else showScreen('screen-login-admin');
+}
+function goBackToSelect() { showScreen('screen-select'); }
+function showRegister() { showScreen('screen-register-leitor'); }
+
+function enterLibrary() {
+  const splash = document.getElementById('splash');
+  splash.classList.add('hide');
+  setTimeout(() => splash.style.display = 'none', 900);
+  showMainApp();
+}
+function showMainApp() {
+  document.getElementById('mainHeader').style.display = 'block';
+  document.getElementById('mainTabsContainer').style.display = 'block';
+  document.getElementById('mainContent').style.display = 'block';
+  document.getElementById('mainFooter').style.display = 'block';
+}
+
+let toastTimer;
+function showToast(msg, isAlert = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  if (isAlert) t.classList.add('alerta'); else t.classList.remove('alerta');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.classList.remove('show'); t.classList.remove('alerta'); }, 4000);
+}
+function showLoading(on) { document.getElementById('loading').classList.toggle('active', on); }
+function showAuthError(elId, msg) {
+  const el = document.getElementById(elId);
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 6000);
+}
+function fmtDate(d) {
+  if (!d) return '';
+  if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}/.test(d)) {
+    const [y, m, day] = d.split('T')[0].split('-');
+    return `${day}/${m}/${y}`;
+  }
+  return d;
+}
+function getDaysOverdue(h) {
+  if (!h || h.status !== 'em-posse' || !h.due_date) return 0;
+  const due = new Date(h.due_date + 'T00:00:00');
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff = Math.ceil((today - due) / 86400000);
+  return diff > 0 ? diff : 0;
+}
+
+// ---------- AUTH ----------
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPassword').value;
+  if (!email || !pass) return showAuthError('loginError', 'Preencha e-mail e senha.');
+  const btn = document.getElementById('btnLogin');
+  btn.disabled = true; btn.textContent = 'Entrando...';
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  btn.disabled = false; btn.textContent = 'Entrar como Leitor';
+  if (error) return showAuthError('loginError', error.message);
+  await afterLogin();
+}
+
+async function doRegister() {
+  const name = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const pass = document.getElementById('regPassword').value;
+  if (!name || !email || !pass) return showAuthError('registerError', 'Preencha todos os campos.');
+  if (pass.length < 6) return showAuthError('registerError', 'Senha mínima de 6 caracteres.');
+  const btn = document.getElementById('btnRegister');
+  btn.disabled = true; btn.textContent = 'Criando...';
+  const { data, error } = await sb.auth.signUp({ email, password: pass, options: { data: { name } } });
+  btn.disabled = false; btn.textContent = 'Criar Conta';
+  if (error) return showAuthError('registerError', error.message);
+  if (!data.session) {
+    return showAuthError('registerError', 'Conta criada! Verifique seu e-mail para confirmar, depois faça login.');
+  }
+  await afterLogin();
+}
+
+async function doAdminLogin() {
+  const email = document.getElementById('adminEmail').value.trim();
+  const pass = document.getElementById('adminPassword').value;
+  if (!email || !pass) return showAuthError('adminError', 'Preencha e-mail e senha.');
+  const btn = document.getElementById('btnAdminLogin');
+  btn.disabled = true; btn.textContent = 'Verificando...';
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) { btn.disabled = false; btn.textContent = 'Acessar Painel'; return showAuthError('adminError', error.message); }
+  const { data: prof } = await sb.from('profiles').select('role').eq('auth_user_id', data.user.id).maybeSingle();
+  if (!prof || prof.role !== 'admin') {
+    await sb.auth.signOut();
+    btn.disabled = false; btn.textContent = 'Acessar Painel';
+    return showAuthError('adminError', 'Esta conta não tem permissão de bibliotecário.');
+  }
+  btn.disabled = false; btn.textContent = 'Acessar Painel';
+  await afterLogin();
+}
+
+async function afterLogin() {
+  const { data: { user } } = await sb.auth.getUser();
+  if (!user) return;
+  currentUser = user;
+  
+  const { data: prof } = await sb.from('profiles').select('profile_id, name, role').eq('auth_user_id', user.id).maybeSingle();
+  currentProfile = prof || { profile_id: 0, name: user.email.split('@')[0], role: 'leitor' };
+  
+  enterLibrary();
+  await loadAll();
+}
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  await sb.auth.signOut();
+  location.reload();
+});
+
+// ---------- CARGA GERAL ----------
+async function loadAll() {
+  showLoading(true);
+  const [b, r, d, likes] = await Promise.all([
+    sb.from('books').select('*').order('theme').order('title'),
+    sb.from('recommendations').select('*').order('created_at', { ascending: false }),
+    sb.from('donations').select('*').order('created_at', { ascending: false }),
+    sb.from('recommendation_likes').select('recommendation_id').eq('user_id', currentProfile.profile_id)
+  ]);
+  books = b.data || [];
+  recommendations = r.data || [];
+  donations = d.data || [];
+  myLikes = new Set((likes.data || []).map(x => x.recommendation_id));
+
+  // AQUI ESTAVA O ERRO: Removemos o .order('created_at') do history para não quebrar!
+  if (currentProfile.role === 'admin') {
+    const { data: h } = await sb.from('history').select('*');
+    history = h || [];
+  } else {
+    const { data: h } = await sb.from('history').select('*').eq('user_id', currentProfile.profile_id);
+    history = h || [];
+  }
+
+  applyUserToHeader();
+  renderCategoryPills();
+  renderBooks();
+  renderMangas();
+  renderRecommendations();
+  renderDonations();
+  renderHistory();
+  if (currentProfile.role === 'admin') renderAdminDashboard();
+
+  showLoading(false);
+}
+
+function applyUserToHeader() {
+  const name = currentProfile?.name || 'Leitor';
+  document.getElementById('userName').textContent = name;
+  document.getElementById('avatar').textContent = name.charAt(0).toUpperCase();
+  const roleBadge = document.getElementById('userRole');
+  const tabDoacoes = document.getElementById('tabDoacoes');
+  const tabHistorico = document.getElementById('tabHistorico');
+  const adminTab = document.getElementById('adminTab');
+
+  if (currentProfile?.role === 'admin') {
+    roleBadge.textContent = 'Bibliotecário';
+    roleBadge.style.background = 'var(--dourado)';
+    roleBadge.style.color = 'var(--madeira-escura)';
+    adminTab.style.display = 'block';
+    tabDoacoes.style.display = 'none';
+    tabHistorico.style.display = 'none';
+    document.querySelector('.tab[data-tab="admin"]').click();
+  } else {
+    roleBadge.textContent = 'Leitor';
+    roleBadge.style.background = 'var(--papel)';
+    roleBadge.style.color = 'var(--madeira-escura)';
+    adminTab.style.display = 'none';
+    tabDoacoes.style.display = 'flex';
+    tabHistorico.style.display = 'flex';
+    document.querySelector('.tab[data-tab="acervo"]').click();
+    setTimeout(() => {
+      const myOverdue = history.filter(h => h.status === 'em-posse' && getDaysOverdue(h) > 0);
+      if (myOverdue.length > 0) showToast(`🚨 Você tem ${myOverdue.length} livro(s) em atraso!`, true);
+    }, 1200);
+  }
+}
+
+// ---------- NAVEGAÇÃO ----------
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    if (!currentUser) return;
+    if (tab.dataset.tab === 'admin' && currentProfile?.role !== 'admin') {
+      showToast('Acesso negado.'); return;
+    }
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.tab).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (tab.dataset.tab === 'admin') renderAdminDashboard();
+  });
+});
+
+function switchAdminTab(tabName, btn) {
+  document.querySelectorAll('.admin-inner-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.admin-inner-content').forEach(c => c.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  else {
+    const foundBtn = document.querySelector(`.admin-inner-tab[data-inner-tab="${tabName}"]`);
+    if (foundBtn) foundBtn.classList.add('active');
+  }
+  const content = document.getElementById(`admin-inner-${tabName}`);
+  if (content) content.classList.add('active');
+}
+
+// ---------- EMPRÉSTIMO / DEVOLUÇÃO ----------
+async function borrowBook(bookId) {
+  if (!currentUser) return showToast('Faça login.');
+  showLoading(true);
+  const { error } = await sb.rpc('borrow_book', { p_book_id: bookId });
+  showLoading(false);
+  if (error) return showToast(error.message, true);
+  showToast('Empréstimo registrado! Devolva em 7 dias. 📖');
+  await loadAll();
+}
+async function returnBook(bookId) {
+  if (!currentUser) return;
+  showLoading(true);
+  const { error } = await sb.rpc('return_book', { p_book_id: bookId });
+  showLoading(false);
+  if (error) return showToast(error.message, true);
+  showToast('Devolvido! Obrigado. ✨');
+  await loadAll();
+}
+function returnHistoryBook(bookId) { returnBook(bookId); }
+
+// ---------- HISTÓRICO ----------
+function renderHistory() {
+  const container = document.getElementById('historyList');
+  if (!container || !currentUser) return;
+  const userHistory = history.filter(h => h.user_id === currentProfile.profile_id);
+  if (userHistory.length === 0) {
+    container.innerHTML = '<p style="color:var(--caramelo); text-align:center; padding:2rem;">Você ainda não tem histórico.</p>';
+    return;
+  }
+  container.innerHTML = userHistory.map((h) => {
+    const daysOverdue = getDaysOverdue(h);
+    const isOverdue = daysOverdue > 0;
+    const ratingOptions = ['Ruim','Razoável','Mediano','Bom','Ótimo'];
+    const ratingButtons = ratingOptions.map(opt =>
+      `<button class="rating-option ${h.rating === opt ? 'selected' : ''}" onclick="rateHistory(${h.id}, '${opt}', this)">${opt}</button>`
+    ).join('');
+    return `
+      <div class="history-item ${h.status === 'devolvido' ? 'returned' : ''} ${isOverdue ? 'overdue' : ''}">
+        <div class="history-info">
+          <h4>${h.book_title}</h4>
+          <p>por ${h.book_author}</p>
+          <span class="history-badge ${h.status === 'em-posse' ? 'badge-em-posse' : 'badge-devolvido'}">
+            ${h.status === 'em-posse' ? '📚 Em sua posse' : '✅ Devolvido'}
+          </span>
+          ${isOverdue ? `<span class="history-badge badge-atraso-dias">🚨 ${daysOverdue} dia(s) de atraso</span>` : ''}
+          <div class="history-dates-box">
+            <div>📅 <strong>Empréstimo:</strong> ${fmtDate(h.date_borrowed)}</div>
+            <div>⏰ <strong>Devolver até:</strong> ${fmtDate(h.due_date)}</div>
+            ${h.date_returned ? `<div>✅ <strong>Devolvido em:</strong> ${fmtDate(h.date_returned)}</div>` : ''}
+          </div>
+        </div>
+        <div style="text-align:right; min-width:200px;">
+          ${h.status === 'em-posse' ? `<button class="btn-return-history" onclick="returnHistoryBook(${h.book_id})">Devolver</button>` : ''}
+          <div class="history-rating-area">
+            <span class="history-rating-label">Avalie:</span>
+            <div class="rating-scale">${ratingButtons}</div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function rateHistory(historyId, rating, btn) {
+  if (!currentUser) return;
+  const { error } = await sb.from('history').update({ rating }).eq('id', historyId);
+  if (error) return showToast(error.message, true);
+  const idx = history.findIndex(x => x.id === historyId);
+  if (idx >= 0) history[idx].rating = rating;
+  btn.parentElement.querySelectorAll('.rating-option').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  showToast(`Avaliado como "${rating}"!`);
+}
+
+// ---------- RENDER CATEGORIAS ----------
+const CATEGORY_ORDER = ['Romance', 'Ficção', 'Suspense', 'História', 'Autoajuda', 'Infantil'];
+const CATEGORY_PILL_CLASS = { 'Romance':'pill-romance','Ficção':'pill-ficcao','Suspense':'pill-suspense','História':'pill-historia','Autoajuda':'pill-autoajuda','Infantil':'pill-infantil','Mangá':'pill-manga' };
+const CATEGORY_ICONS = { 'Romance':'💕','Ficção':'🚀','Suspense':'🔍','História':'🏛️','Autoajuda':'🌱','Infantil':'🧸','Mangá':'🇯🇵' };
+const themeClasses = { 'Romance':'tema-romance','Ficção':'tema-ficcao','Suspense':'tema-suspense','História':'tema-historia','Autoajuda':'tema-autoajuda','Infantil':'tema-infantil','Mangá':'tema-manga' };
+const statusLabels = { 'disponivel':'✅ Disponível','reservado':'🔒 Reservado','em-uso':'📖 Em uso' };
+
+function renderCategoryPills() {
+  const container = document.getElementById('categoryPills');
+  if (!container) return;
+  const nonManga = books.filter(b => b.theme !== 'Mangá');
+  const counts = {};
+  nonManga.forEach(b => { counts[b.theme] = (counts[b.theme] || 0) + 1; });
+  let html = `<button class="category-pill ${currentCategoryFilter === null ? 'active' : ''}" onclick="setCategoryFilter(null)">
+    <span style="font-size:0.9rem;">📚</span> Todas <span class="pill-count">${nonManga.length}</span></button>`;
+  CATEGORY_ORDER.forEach(cat => {
+    if (!counts[cat]) return;
+    html += `<button class="category-pill ${CATEGORY_PILL_CLASS[cat] || ''} ${currentCategoryFilter === cat ? 'active' : ''}" onclick="setCategoryFilter('${cat}')">
+      <span class="pill-dot"></span> ${cat} <span class="pill-count">${counts[cat]}</span></button>`;
+  });
+  container.innerHTML = html;
+}
+function setCategoryFilter(cat) { currentCategoryFilter = cat; renderCategoryPills(); renderBooks(); }
+
+function buildBookHTML(b) {
+  const holder = b.status === 'em-uso' ? history.find(h => h.book_id === b.id && h.status === 'em-posse') : null;
+  const themeClass = themeClasses[b.theme] || 'tema-ficcao';
+  let actionHTML = '';
+  if (b.status === 'disponivel')
+    actionHTML = `<button class="tooltip-action-btn borrow" onclick="event.stopPropagation(); borrowBook(${b.id})">📚 Emprestar</button>`;
+  else if (b.status === 'em-uso')
+    actionHTML = `<button class="tooltip-action-btn return" onclick="event.stopPropagation(); returnBook(${b.id})">✅ Devolver</button>`;
+  else
+    actionHTML = `<button class="tooltip-action-btn disabled" disabled>🔒 Indisponível</button>`;
+
+  return `
+    <div class="shelf-book ${themeClass}" onclick="borrowBook(${b.id})">
+      <span class="shelf-book-status ${b.status}"></span>
+      <span class="shelf-book-title">${b.title}</span>
+      <div class="shelf-book-tooltip" onclick="event.stopPropagation();">
+        <div class="tooltip-title">${b.title}</div>
+        <div class="tooltip-author">por ${b.author}</div>
+        <div class="tooltip-status ${b.status}">${statusLabels[b.status]}</div>
+        ${holder ? `<div class="tooltip-holder">👤 Em posse de: ${holder.user_name}</div>` : ''}
+        ${actionHTML}
+      </div>
+    </div>`;
+}
+function buildShelfUnit(categoryName, categoryBooks) {
+  const icon = CATEGORY_ICONS[categoryName] || '📚';
+  return `
+    <div class="shelf-unit">
+      <div class="shelf-header">
+        <div class="shelf-header-left">
+          <span class="shelf-header-icon">${icon}</span>
+          <span class="shelf-header-title">${categoryName}</span>
+        </div>
+        <span class="shelf-header-count">${categoryBooks.length} ${categoryBooks.length === 1 ? 'livro' : 'livros'}</span>
+      </div>
+      <div class="shelf-books-scroll">${categoryBooks.map(buildBookHTML).join('')}</div>
+      <div class="shelf-plank"></div>
+    </div>`;
+}
+function renderBooks() {
+  const wrapper = document.getElementById('booksShelves');
+  if (!wrapper) return;
+  const search = (document.getElementById('searchBook')?.value || '').toLowerCase();
+  let filtered = books.filter(b => b.theme !== 'Mangá' &&
+    (b.title.toLowerCase().includes(search) || b.author.toLowerCase().includes(search)));
+  if (currentCategoryFilter) filtered = filtered.filter(b => b.theme === currentCategoryFilter);
+  if (filtered.length === 0) {
+    wrapper.innerHTML = '<p style="color:var(--caramelo); text-align:center; padding:3rem; font-style:italic;">Nenhum livro encontrado.</p>';
+    return;
+  }
+  const grouped = {};
+  CATEGORY_ORDER.forEach(cat => {
+    const items = filtered.filter(b => b.theme === cat);
+    if (items.length) grouped[cat] = items;
+  });
+  wrapper.innerHTML = Object.keys(grouped).map(cat => buildShelfUnit(cat, grouped[cat])).join('');
+}
+function renderMangas() {
+  const wrapper = document.getElementById('mangasShelves');
+  if (!wrapper) return;
+  const search = (document.getElementById('searchManga')?.value || '').toLowerCase();
+  const filtered = books.filter(b => b.theme === 'Mangá' &&
+    (b.title.toLowerCase().includes(search) || b.author.toLowerCase().includes(search)));
+  if (filtered.length === 0) {
+    wrapper.innerHTML = '<p style="color:var(--caramelo); text-align:center; padding:3rem; font-style:italic;">Nenhum mangá encontrado.</p>';
+    return;
+  }
+  wrapper.innerHTML = buildShelfUnit('Mangá', filtered);
+}
+document.getElementById('searchBook')?.addEventListener('input', renderBooks);
+document.getElementById('searchManga')?.addEventListener('input', renderMangas);
+
+// ---------- RECOMENDAÇÕES ----------
+async function addRecommendation() {
+  if (!currentUser) return showToast('Faça login!');
+  const title = document.getElementById('recTitle').value.trim();
+  const author = document.getElementById('recAuthor').value.trim();
+  const reason = document.getElementById('recReason').value.trim();
+  if (!title) return showToast('Informe o título!');
+  const { error } = await sb.from('recommendations').insert({
+    title, author, reason, user_id: currentProfile.profile_id, user_name: currentProfile.name
+  });
+  if (error) return showToast(error.message, true);
+  document.getElementById('recTitle').value = '';
+  document.getElementById('recAuthor').value = '';
+  document.getElementById('recReason').value = '';
+  const { data } = await sb.from('recommendations').select('*').order('created_at', { ascending: false });
+  recommendations = data || [];
+  renderRecommendations();
+  showToast('Recomendação enviada! 💡');
+}
+function renderRecommendations() {
+  const container = document.getElementById('recommendationsList');
+  if (!recommendations.length) {
+    container.innerHTML = '<p style="color:var(--caramelo); text-align:center; padding:2rem;">Nenhuma recomendação ainda.</p>';
+    return;
+  }
+  container.innerHTML = recommendations.map(r => `
+    <div class="list-item">
+      <div class="list-item-content">
+        <h4>${r.title}</h4>
+        <p>${r.author ? 'por ' + r.author + ' • ' : ''}${r.reason || 'Sem comentário'}</p>
+        <button class="like-btn ${myLikes.has(r.id) ? 'liked' : ''}" onclick="likeRec(${r.id})">❤️ ${r.likes || 0}</button>
+      </div>
+      <div class="list-item-meta">Sugerido por<br><strong>${r.user_name}</strong></div>
+    </div>`).join('');
+}
+async function likeRec(id) {
+  if (!currentUser) return showToast('Faça login!');
+  const { data, error } = await sb.rpc('toggle_like', { p_rec_id: id });
+  if (error) return showToast(error.message, true);
+  const rec = recommendations.find(x => x.id === id);
+  if (rec) rec.likes = data;
+  if (myLikes.has(id)) myLikes.delete(id); else myLikes.add(id);
+  renderRecommendations();
+}
+
+// ---------- DOAÇÕES ----------
+async function addDonation() {
+  if (!currentUser) return showToast('Faça login!');
+  const title = document.getElementById('donTitle').value.trim();
+  const author = document.getElementById('donAuthor').value.trim();
+  const theme = document.getElementById('donTheme').value;
+  const condition = document.getElementById('donCondition').value;
+  const notes = document.getElementById('donNotes').value.trim();
+  if (!title) return showToast('Informe o título!');
+  const { error } = await sb.from('donations').insert({
+    title, author, theme, condition, notes, user_id: currentProfile.profile_id, user_name: currentProfile.name
+  });
+  if (error) return showToast(error.message, true);
+  document.getElementById('donTitle').value = '';
+  document.getElementById('donAuthor').value = '';
+  document.getElementById('donNotes').value = '';
+  const { data } = await sb.from('donations').select('*').order('created_at', { ascending: false });
+  donations = data || [];
+  renderDonations();
+  showToast('Doação enviada! 🎁');
+}
+function renderDonations() {
+  const container = document.getElementById('donationsList');
+  if (!container) return;
+  const mine = donations.filter(d => d.user_id === currentProfile.profile_id);
+  if (!mine.length) {
+    container.innerHTML = '<p style="color:var(--caramelo); text-align:center; padding:2rem;">Você ainda não fez doações.</p>';
+    return;
+  }
+  container.innerHTML = mine.map(d => `
+    <div class="list-item" style="border-left-color:${d.status === 'pendente' ? '#f8e4b5' : '#6b7a4a'};">
+      <div class="list-item-content">
+        <h4>${d.title} ${d.status === 'pendente' ? '<span style="font-size:0.7rem; color:#7a5a10; background:#f8e4b5; padding:0.2rem 0.5rem; border-radius:4px; margin-left:0.5rem;">Aguardando</span>' : d.status === 'aceita' ? '<span style="font-size:0.7rem; color:#3d5c1e; background:#d4e8c5; padding:0.2rem 0.5rem; border-radius:4px; margin-left:0.5rem;">Aceita</span>' : ''}</h4>
+        <p>${d.author ? 'por ' + d.author + ' • ' : ''}${d.theme || ''} ${d.condition ? '• Estado: ' + d.condition : ''}</p>
+        ${d.notes ? '<p style="margin-top:0.3rem; font-style:italic; font-size:0.8rem;">"' + d.notes + '"</p>' : ''}
+      </div>
+    </div>`).join('');
+}
+
+// ---------- ADMIN ----------
+function renderAdminDashboard() {
+  if (currentProfile?.role !== 'admin') return;
+  const activeLoans = history.filter(h => h.status === 'em-posse');
+  const overdueLoans = activeLoans.filter(h => getDaysOverdue(h) > 0);
+  const pendingDonations = donations.filter(d => d.status === 'pendente');
+
+  document.getElementById('totalBooks').textContent = books.length;
+  document.getElementById('totalAvailable').textContent = books.filter(b => b.status === 'disponivel').length;
+  document.getElementById('totalInUse').textContent = books.filter(b => b.status === 'em-uso').length;
+  document.getElementById('totalOverdue').textContent = overdueLoans.length;
+  document.getElementById('totalDonations').textContent = pendingDonations.length;
+
+  const lb = document.getElementById('loansBadge');
+  if (overdueLoans.length) { lb.textContent = overdueLoans.length; lb.style.display = 'inline-block'; } else lb.style.display = 'none';
+  const db = document.getElementById('donationsBadge');
+  if (pendingDonations.length) { db.textContent = pendingDonations.length; db.style.display = 'inline-block'; } else db.style.display = 'none';
+
+  document.getElementById('adminCountTodos').textContent = books.length;
+  document.getElementById('adminCountDisponivel').textContent = books.filter(b => b.status === 'disponivel').length;
+  document.getElementById('adminCountEmUso').textContent = books.filter(b => b.status === 'em-uso').length;
+  document.getElementById('adminCountReservado').textContent = books.filter(b => b.status === 'reservado').length;
+
+  renderAdminTable();
+  renderAdminLoans(activeLoans, overdueLoans);
+  renderAdminDonations(pendingDonations);
+  renderAdminRatings();
+}
+
+function renderAdminTable() {
+  const tbody = document.getElementById('adminTableBody');
+  const filtered = adminBookFilter === 'todos' ? books : books.filter(b => b.status === adminBookFilter);
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:#b89a6a; padding:2rem;">Nenhum item.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = filtered.map(b => {
+    let badgeClass, statusText;
+    if (b.status === 'disponivel') { badgeClass = 'badge-disponivel'; statusText = 'Disponível'; }
+    else if (b.status === 'em-uso') { badgeClass = 'badge-em-uso'; statusText = 'Em Uso'; }
+    else { badgeClass = 'badge-reservado'; statusText = 'Reservado'; }
+    const holder = history.find(h => h.book_id === b.id && h.status === 'em-posse');
+
+    let actionBtn = '';
+    if (b.status === 'disponivel') {
+      actionBtn = `<button class="btn-accept" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;" onclick="borrowBook(${b.id})">Emprestar</button>`;
+    } else if (b.status === 'em-uso') {
+      actionBtn = `<button class="btn-return-history" style="margin-top: 0; padding: 0.4rem 0.8rem; font-size: 0.8rem;" onclick="returnBook(${b.id})">Devolver</button>`;
+    } else {
+      actionBtn = `<span style="color:#555;">—</span>`;
+    }
+
+    return `
+      <tr>
+        <td>#${b.id}</td>
+        <td style="font-family:'Playfair Display',serif; font-weight:600;">${b.title}</td>
+        <td style="color:#b89a6a;">${b.author}</td>
+        <td>${b.theme}</td>
+        <td><span class="badge-status ${badgeClass}">${statusText}</span></td>
+        <td style="font-size:0.85rem; color:#f8e4b5;">${holder ? `👤 ${holder.user_name}` : '<span style="color:#555;">—</span>'}</td>
+        <td>${actionBtn}</td>
+        <td>
+          <select class="status-select" onchange="changeStatus(${b.id}, this.value)">
+            <option value="disponivel" ${b.status === 'disponivel' ? 'selected' : ''}>Disponível</option>
+            <option value="em-uso" ${b.status === 'em-uso' ? 'selected' : ''}>Em Uso</option>
+            <option value="reservado" ${b.status === 'reservado' ? 'selected' : ''}>Reservado</option>
+          </select>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+function filterAdminBooks(status, btn) {
+  adminBookFilter = status;
+  document.querySelectorAll('.admin-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAdminTable();
+}
+
+function renderAdminLoans(activeLoans, overdueLoans) {
+  const container = document.getElementById('adminLoansList');
+  let filtered = activeLoans;
+  if (currentLoanFilter === 'em-dia') filtered = activeLoans.filter(h => getDaysOverdue(h) === 0);
+  else if (currentLoanFilter === 'atrasados') filtered = overdueLoans;
+
+  if (!filtered.length) {
+    container.innerHTML = `<p style="color:#b89a6a; font-style:italic; padding:1rem;">Nenhum empréstimo.</p>`;
+    return;
+  }
+  container.innerHTML = filtered.map(h => {
+    const days = getDaysOverdue(h);
+    return `
+      <div class="loan-card ${days > 0 ? 'overdue' : ''}">
+        <div class="loan-info">
+          <h4>${h.book_title}</h4>
+          <p>${h.book_author}</p>
+          <span class="user-tag">👤 ${h.user_name}</span>
+        </div>
+        <div class="loan-dates">
+          <div>📅 <strong>Empréstimo:</strong> ${fmtDate(h.date_borrowed)}</div>
+          <div>⏰ <strong>Devolver até:</strong> ${fmtDate(h.due_date)}</div>
+          ${days > 0 ? `<div class="overdue-text">🚨 ${days} dia(s) de atraso</div>` : `<div style="color:#d4e8c5;">✅ Em dia</div>`}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function filterLoans(filter, btn) {
+  currentLoanFilter = filter;
+  document.querySelectorAll('.loan-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const active = history.filter(h => h.status === 'em-posse');
+  renderAdminLoans(active, active.filter(h => getDaysOverdue(h) > 0));
+}
+
+async function changeStatus(bookId, newStatus) {
+  const { error } = await sb.from('books').update({ status: newStatus }).eq('id', bookId);
+  if (error) return showToast(error.message, true);
+  const idx = books.findIndex(b => b.id === bookId);
+  if (idx >= 0) books[idx].status = newStatus;
+  showToast('Status atualizado!');
+  renderAdminDashboard();
+  renderBooks();
+  renderMangas();
+  renderCategoryPills();
+}
+
+function renderAdminDonations(pending) {
+  const container = document.getElementById('adminDonationsList');
+  if (!pending.length) {
+    container.innerHTML = `<p style="color:#b89a6a; font-style:italic;">Nenhuma doação pendente.</p>`;
+    return;
+  }
+  container.innerHTML = pending.map(d => `
+    <div class="donation-card">
+      <div class="donation-info">
+        <h4>${d.title}</h4>
+        <p>Autor: ${d.author || '—'} | Tema: ${d.theme || '—'} | Estado: ${d.condition || '—'}</p>
+        <p style="color:#f8e4b5; font-size:0.8rem; margin-top:0.3rem;">Doado por: ${d.user_name}</p>
+        ${d.notes ? `<p style="font-style:italic; font-size:0.8rem;">"${d.notes}"</p>` : ''}
+      </div>
+      <div class="donation-actions">
+        <button class="btn-accept" onclick="acceptDonation(${d.id})">Aceitar</button>
+        <button class="btn-reject" onclick="rejectDonation(${d.id})">Recusar</button>
+      </div>
+    </div>`).join('');
+}
+
+async function acceptDonation(id) {
+  showLoading(true);
+  const { error } = await sb.rpc('accept_donation', { p_donation_id: id });
+  showLoading(false);
+  if (error) return showToast(error.message, true);
+  showToast('Doação aceita e adicionada ao acervo! 📖');
+  await loadAll();
+}
+async function rejectDonation(id) {
+  const { error } = await sb.from('donations').update({ status: 'recusada' }).eq('id', id);
+  if (error) return showToast(error.message, true);
+  showToast('Doação recusada.');
+  await loadAll();
+}
+
+function renderAdminRatings() {
+  const container = document.getElementById('adminRatingsList');
+  const rated = history.filter(h => h.rating).slice().reverse();
+  if (!rated.length) {
+    container.innerHTML = `<p style="color:#b89a6a; font-style:italic;">Nenhuma avaliação ainda.</p>`;
+    return;
+  }
+  container.innerHTML = rated.map(h => {
+    const cls = {'Ótimo':'note-otimo','Bom':'note-bom','Mediano':'note-mediano','Razoável':'note-razoavel','Ruim':'note-ruim'}[h.rating] || 'note-mediano';
+    return `
+      <div class="admin-rating-card">
+        <div class="admin-rating-info">
+          <h4>${h.book_title}</h4>
+          <p>Avaliado por <strong style="color:#c9a227;">${h.user_name}</strong> • ${fmtDate(h.date_borrowed)}</p>
+        </div>
+        <span class="admin-rating-note ${cls}">${h.rating}</span>
+      </div>`;
+  }).join('');
+}
+
+// ---------- MODAL NOVO LIVRO ----------
+const addBookModal = document.getElementById('addBookModal');
+function openAddBookModal() { addBookModal.classList.add('active'); }
+function closeAddBookModal() { addBookModal.classList.remove('active'); }
+
+async function doAddBook() {
+  const title = document.getElementById('newBookTitle').value.trim();
+  const author = document.getElementById('newBookAuthor').value.trim();
+  const theme = document.getElementById('newBookTheme').value;
+  if (!title) return showToast('Informe o título!');
+  const { error } = await sb.from('books').insert({
+    title, author: author || 'Desconhecido', theme, status: 'disponivel'
+  });
+  if (error) return showToast(error.message, true);
+  document.getElementById('newBookTitle').value = '';
+  document.getElementById('newBookAuthor').value = '';
+  closeAddBookModal();
+  showToast(`"${title}" cadastrado! 📖`);
+  await loadAll();
+}
+
+// ---------- BOOT ----------
+(async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    await afterLogin();
+  } else {
+    showScreen('screen-select');
+  }
+})();
+</script>
+</body>
+</html>
